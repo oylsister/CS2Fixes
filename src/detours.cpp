@@ -66,9 +66,9 @@ DECLARE_DETOUR(UTIL_SayTextFilter, Detour_UTIL_SayTextFilter);
 DECLARE_DETOUR(UTIL_SayText2Filter, Detour_UTIL_SayText2Filter);
 DECLARE_DETOUR(IsHearingClient, Detour_IsHearingClient);
 DECLARE_DETOUR(TriggerPush_Touch, Detour_TriggerPush_Touch);
-DECLARE_DETOUR(CBaseEntity_TakeDamageOld, Detour_CBaseEntity_TakeDamageOld);
-DECLARE_DETOUR(CCSPlayer_WeaponServices_CanUse, Detour_CCSPlayer_WeaponServices_CanUse);
-DECLARE_DETOUR(CEntityIdentity_AcceptInput, Detour_CEntityIdentity_AcceptInput);
+//DECLARE_DETOUR(CBaseEntity_TakeDamageOld, Detour_CBaseEntity_TakeDamageOld);
+//DECLARE_DETOUR(CCSPlayer_WeaponServices_CanUse, Detour_CCSPlayer_WeaponServices_CanUse);
+//DECLARE_DETOUR(CEntityIdentity_AcceptInput, Detour_CEntityIdentity_AcceptInput);
 DECLARE_DETOUR(CNavMesh_GetNearestNavArea, Detour_CNavMesh_GetNearestNavArea);
 DECLARE_DETOUR(ProcessMovement, Detour_ProcessMovement);
 DECLARE_DETOUR(ProcessUsercmds, Detour_ProcessUsercmds);
@@ -89,58 +89,6 @@ static bool g_bFixBlockDamage = false;
 FAKE_BOOL_CVAR(cs2f_block_molotov_self_dmg, "Whether to block self-damage from molotovs", g_bBlockMolotovSelfDmg, false, false)
 FAKE_BOOL_CVAR(cs2f_block_all_dmg, "Whether to block all damage to players", g_bBlockAllDamage, false, false)
 FAKE_BOOL_CVAR(cs2f_fix_block_dmg, "Whether to fix block-damage on players", g_bFixBlockDamage, false, false)
-
-void FASTCALL Detour_CBaseEntity_TakeDamageOld(CBaseEntity* pThis, CTakeDamageInfo* inputInfo)
-{
-#ifdef _DEBUG
-	Message("\n--------------------------------\n"
-			"TakeDamage on %s\n"
-			"Attacker: %s\n"
-			"Inflictor: %s\n"
-			"Ability: %s\n"
-			"Damage: %.2f\n"
-			"Damage Type: %i\n"
-			"--------------------------------\n",
-			pThis->GetClassname(),
-			inputInfo->m_hAttacker.Get() ? inputInfo->m_hAttacker.Get()->GetClassname() : "NULL",
-			inputInfo->m_hInflictor.Get() ? inputInfo->m_hInflictor.Get()->GetClassname() : "NULL",
-			inputInfo->m_hAbility.Get() ? inputInfo->m_hAbility.Get()->GetClassname() : "NULL",
-			inputInfo->m_flDamage,
-			inputInfo->m_bitsDamageType);
-#endif
-
-	// Block all player damage if desired
-	if (g_bBlockAllDamage && pThis->IsPawn())
-		return;
-
-	CBaseEntity* pInflictor = inputInfo->m_hInflictor.Get();
-	const char* pszInflictorClass = pInflictor ? pInflictor->GetClassname() : "";
-
-	// After Armory update, activator became attacker on block damage, which broke it..
-	if (g_bFixBlockDamage && inputInfo->m_AttackerInfo.m_bIsPawn && inputInfo->m_bitsDamageType ^ DMG_BULLET && inputInfo->m_hAttacker != pThis->GetHandle())
-	{
-		if (V_strcasecmp(pszInflictorClass, "func_movelinear") == 0
-			|| V_strcasecmp(pszInflictorClass, "func_mover") == 0
-			|| V_strcasecmp(pszInflictorClass, "func_door") == 0
-			|| V_strcasecmp(pszInflictorClass, "func_door_rotating") == 0
-			|| V_strcasecmp(pszInflictorClass, "func_rotating") == 0
-			|| V_strcasecmp(pszInflictorClass, "point_hurt") == 0)
-		{
-			inputInfo->m_AttackerInfo.m_bIsPawn = false;
-			inputInfo->m_AttackerInfo.m_bIsWorld = true;
-			inputInfo->m_hAttacker = inputInfo->m_hInflictor;
-
-			inputInfo->m_AttackerInfo.m_hAttackerPawn = CHandle<CCSPlayerPawn>(~0u);
-			inputInfo->m_AttackerInfo.m_nAttackerPlayerSlot = ~0;
-		}
-	}
-
-	// Prevent molly on self
-	if (g_bBlockMolotovSelfDmg && inputInfo->m_hAttacker == pThis && !V_strncmp(pszInflictorClass, "inferno", 7))
-		return;
-
-	CBaseEntity_TakeDamageOld(pThis, inputInfo);
-}
 
 static bool g_bUseOldPush = false;
 FAKE_BOOL_CVAR(cs2f_use_old_push, "Whether to use the old CSGO trigger_push behavior", g_bUseOldPush, false, false)
@@ -362,106 +310,6 @@ void FASTCALL Detour_UTIL_SayText2Filter(
 #endif
 
 	UTIL_SayText2Filter(filter, pEntity, eMessageType, msg_name, param1, param2, param3, param4);
-}
-
-bool FASTCALL Detour_CCSPlayer_WeaponServices_CanUse(CCSPlayer_WeaponServices* pWeaponServices, CBasePlayerWeapon* pPlayerWeapon)
-{
-	if (g_bEnableZR && !ZR_Detour_CCSPlayer_WeaponServices_CanUse(pWeaponServices, pPlayerWeapon))
-		return false;
-
-	return CCSPlayer_WeaponServices_CanUse(pWeaponServices, pPlayerWeapon);
-}
-
-bool FASTCALL Detour_CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSymbolLarge* pInputName, CEntityInstance* pActivator, CEntityInstance* pCaller, variant_t* value, int nOutputID)
-{
-	VPROF_SCOPE_BEGIN("Detour_CEntityIdentity_AcceptInput");
-
-	if (g_bEnableZR)
-		ZR_Detour_CEntityIdentity_AcceptInput(pThis, pInputName, pActivator, pCaller, value, nOutputID);
-
-	// Handle KeyValue(s)
-	if (!V_strnicmp(pInputName->String(), "KeyValue", 8))
-	{
-		if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
-		{
-			// always const char*, even if it's FIELD_STRING (that is bug string from lua 'EntFire')
-			return CustomIO_HandleInput(pThis->m_pInstance, value->m_pszString, pActivator, pCaller);
-		}
-		Message("Invalid value type for input %s\n", pInputName->String());
-		return false;
-	}
-
-	if (!V_strnicmp(pInputName->String(), "IgniteL", 7)) // Override IgniteLifetime
-	{
-		float flDuration = 0.f;
-
-		if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
-			flDuration = V_StringToFloat32(value->m_pszString, 0.f);
-		else
-			flDuration = value->m_float;
-
-		CCSPlayerPawn* pPawn = reinterpret_cast<CCSPlayerPawn*>(pThis->m_pInstance);
-
-		if (pPawn->IsPawn() && IgnitePawn(pPawn, flDuration, pPawn, pPawn))
-			return true;
-	}
-	else if (!V_strnicmp(pInputName->String(), "AddScore", 8))
-	{
-		int iScore = 0;
-
-		if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
-			iScore = V_StringToInt32(value->m_pszString, 0);
-		else
-			iScore = value->m_int;
-
-		CCSPlayerPawn* pPawn = reinterpret_cast<CCSPlayerPawn*>(pThis->m_pInstance);
-
-		if (pPawn->IsPawn() && pPawn->GetOriginalController())
-		{
-			pPawn->GetOriginalController()->AddScore(iScore);
-			return true;
-		}
-	}
-	else if (!V_strcasecmp(pInputName->String(), "SetMessage"))
-	{
-		if (const auto pHudHint = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsHudHint())
-		{
-			if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
-				pHudHint->m_iszMessage(GameEntitySystem()->AllocPooledString(value->m_pszString));
-			return true;
-		}
-	}
-	else if (!V_strcasecmp(pInputName->String(), "SetModel"))
-	{
-		if (const auto pModelEntity = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsBaseModelEntity())
-		{
-			if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
-				pModelEntity->SetModel(value->m_pszString);
-			return true;
-		}
-	}
-	else if (const auto pGameUI = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsGameUI())
-	{
-		if (!V_strcasecmp(pInputName->String(), "Activate"))
-			return CGameUIHandler::OnActivate(pGameUI, reinterpret_cast<CBaseEntity*>(pActivator));
-		if (!V_strcasecmp(pInputName->String(), "Deactivate"))
-			return CGameUIHandler::OnDeactivate(pGameUI, reinterpret_cast<CBaseEntity*>(pActivator));
-	}
-	else if (const auto pViewControl = reinterpret_cast<CPointViewControl*>(pThis->m_pInstance)->AsPointViewControl())
-	{
-		if (!V_strcasecmp(pInputName->String(), "EnableCamera"))
-			return CPointViewControlHandler::OnEnable(pViewControl, reinterpret_cast<CBaseEntity*>(pActivator));
-		if (!V_strcasecmp(pInputName->String(), "DisableCamera"))
-			return CPointViewControlHandler::OnDisable(pViewControl, reinterpret_cast<CBaseEntity*>(pActivator));
-		if (!V_strcasecmp(pInputName->String(), "EnableCameraAll"))
-			return CPointViewControlHandler::OnEnableAll(pViewControl);
-		if (!V_strcasecmp(pInputName->String(), "DisableCameraAll"))
-			return CPointViewControlHandler::OnDisableAll(pViewControl);
-	}
-
-	VPROF_SCOPE_END();
-
-	return CEntityIdentity_AcceptInput(pThis, pInputName, pActivator, pCaller, value, nOutputID);
 }
 
 bool g_bBlockNavLookup = false;
