@@ -68,7 +68,7 @@ DECLARE_DETOUR(IsHearingClient, Detour_IsHearingClient);
 DECLARE_DETOUR(TriggerPush_Touch, Detour_TriggerPush_Touch);
 //DECLARE_DETOUR(CBaseEntity_TakeDamageOld, Detour_CBaseEntity_TakeDamageOld);
 //DECLARE_DETOUR(CCSPlayer_WeaponServices_CanUse, Detour_CCSPlayer_WeaponServices_CanUse);
-//DECLARE_DETOUR(CEntityIdentity_AcceptInput, Detour_CEntityIdentity_AcceptInput);
+DECLARE_DETOUR(CEntityIdentity_AcceptInput, Detour_CEntityIdentity_AcceptInput);
 DECLARE_DETOUR(CNavMesh_GetNearestNavArea, Detour_CNavMesh_GetNearestNavArea);
 DECLARE_DETOUR(ProcessMovement, Detour_ProcessMovement);
 DECLARE_DETOUR(ProcessUsercmds, Detour_ProcessUsercmds);
@@ -310,6 +310,87 @@ void FASTCALL Detour_UTIL_SayText2Filter(
 #endif
 
 	UTIL_SayText2Filter(filter, pEntity, eMessageType, msg_name, param1, param2, param3, param4);
+}
+
+bool FASTCALL Detour_CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSymbolLarge* pInputName, CEntityInstance* pActivator, CEntityInstance* pCaller, variant_t* value, int nOutputID)
+{
+	VPROF_SCOPE_BEGIN("Detour_CEntityIdentity_AcceptInput");
+	if (g_bEnableZR)
+		ZR_Detour_CEntityIdentity_AcceptInput(pThis, pInputName, pActivator, pCaller, value, nOutputID);
+	// Handle KeyValue(s)
+	if (!V_strnicmp(pInputName->String(), "KeyValue", 8))
+	{
+		if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
+		{
+			// always const char*, even if it's FIELD_STRING (that is bug string from lua 'EntFire')
+			return CustomIO_HandleInput(pThis->m_pInstance, value->m_pszString, pActivator, pCaller);
+		}
+		Message("Invalid value type for input %s\n", pInputName->String());
+		return false;
+	}
+	if (!V_strnicmp(pInputName->String(), "IgniteL", 7)) // Override IgniteLifetime
+	{
+		float flDuration = 0.f;
+		if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
+			flDuration = V_StringToFloat32(value->m_pszString, 0.f);
+		else
+			flDuration = value->m_float;
+		CCSPlayerPawn* pPawn = reinterpret_cast<CCSPlayerPawn*>(pThis->m_pInstance);
+		if (pPawn->IsPawn() && IgnitePawn(pPawn, flDuration, pPawn, pPawn))
+			return true;
+	}
+	else if (!V_strnicmp(pInputName->String(), "AddScore", 8))
+	{
+		int iScore = 0;
+		if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
+			iScore = V_StringToInt32(value->m_pszString, 0);
+		else
+			iScore = value->m_int;
+		CCSPlayerPawn* pPawn = reinterpret_cast<CCSPlayerPawn*>(pThis->m_pInstance);
+		if (pPawn->IsPawn() && pPawn->GetOriginalController())
+		{
+			pPawn->GetOriginalController()->AddScore(iScore);
+			return true;
+		}
+	}
+	else if (!V_strcasecmp(pInputName->String(), "SetMessage"))
+	{
+		if (const auto pHudHint = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsHudHint())
+		{
+			if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
+				pHudHint->m_iszMessage(GameEntitySystem()->AllocPooledString(value->m_pszString));
+			return true;
+		}
+	}
+	else if (!V_strcasecmp(pInputName->String(), "SetModel"))
+	{
+		if (const auto pModelEntity = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsBaseModelEntity())
+		{
+			if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
+				pModelEntity->SetModel(value->m_pszString);
+			return true;
+		}
+	}
+	else if (const auto pGameUI = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsGameUI())
+	{
+		if (!V_strcasecmp(pInputName->String(), "Activate"))
+			return CGameUIHandler::OnActivate(pGameUI, reinterpret_cast<CBaseEntity*>(pActivator));
+		if (!V_strcasecmp(pInputName->String(), "Deactivate"))
+			return CGameUIHandler::OnDeactivate(pGameUI, reinterpret_cast<CBaseEntity*>(pActivator));
+	}
+	else if (const auto pViewControl = reinterpret_cast<CPointViewControl*>(pThis->m_pInstance)->AsPointViewControl())
+	{
+		if (!V_strcasecmp(pInputName->String(), "EnableCamera"))
+			return CPointViewControlHandler::OnEnable(pViewControl, reinterpret_cast<CBaseEntity*>(pActivator));
+		if (!V_strcasecmp(pInputName->String(), "DisableCamera"))
+			return CPointViewControlHandler::OnDisable(pViewControl, reinterpret_cast<CBaseEntity*>(pActivator));
+		if (!V_strcasecmp(pInputName->String(), "EnableCameraAll"))
+			return CPointViewControlHandler::OnEnableAll(pViewControl);
+		if (!V_strcasecmp(pInputName->String(), "DisableCameraAll"))
+			return CPointViewControlHandler::OnDisableAll(pViewControl);
+	}
+	VPROF_SCOPE_END();
+	return CEntityIdentity_AcceptInput(pThis, pInputName, pActivator, pCaller, value, nOutputID);
 }
 
 bool g_bBlockNavLookup = false;
