@@ -370,6 +370,7 @@ void ClientPrint(CCSPlayerController* player, int hud_dest, const char* msg, ...
 
 CConVar<bool> g_cvarEnableStopSound("cs2f_stopsound_enable", FCVAR_NONE, "Whether to enable stopsound", false);
 
+/*
 CON_COMMAND_CHAT(stopsound, "- Toggle weapon sounds")
 {
 	if (!g_cvarEnableStopSound.Get())
@@ -407,9 +408,12 @@ CON_COMMAND_CHAT(toggledecals, "- Toggle world decals, if you're into having 10 
 
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You have %s world decals.", bSet ? "disabled" : "enabled");
 }
+*/
 
 CConVar<bool> g_cvarEnableNoShake("cs2f_noshake_enable", FCVAR_NONE, "Whether to enable noshake command", false);
 CConVar<float> g_cvarMaxShakeAmp("cs2f_maximum_shake_amplitude", FCVAR_NONE, "Shaking Amplitude bigger than this will be clamped", -1.0f, true, -1.0f, true, 16.0f);
+
+/*
 CON_COMMAND_CHAT(noshake, "- toggle noshake")
 {
 	if (!g_cvarEnableNoShake.Get())
@@ -427,6 +431,7 @@ CON_COMMAND_CHAT(noshake, "- toggle noshake")
 	g_playerManager->SetPlayerNoShake(iPlayer, bSet);
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You have %s noshake.", bSet ? "enabled" : "disabled");
 }
+*/
 
 CConVar<bool> g_cvarEnableHide("cs2f_hide_enable", FCVAR_NONE, "Whether to enable hide (WARNING: randomly crashes clients since 2023-12-13 CS2 update)", false);
 CConVar<int> g_cvarDefaultHideDistance("cs2f_hide_distance_default", FCVAR_NONE, "The default distance for hide", 250, true, 0, false, 0);
@@ -583,6 +588,7 @@ void PrintHelp(const CCommand& args, CCSPlayerController* player)
 		ClientPrint(player, HUD_PRINTCONSOLE, "! can be replaced with / for a silent chat command, or c_ for console usage");
 }
 
+/*
 CON_COMMAND_CHAT(help, "- Display list of commands in console")
 {
 	PrintHelp(args, player);
@@ -1032,6 +1038,8 @@ CON_COMMAND_CHAT(setinteraction, "<flags> - Set a player's interaction flags")
 	}
 }
 
+*/
+
 void HttpCallbackSuccess(HTTPRequestHandle request, json response)
 {
 	ClientPrintAll(HUD_PRINTTALK, response.dump().c_str());
@@ -1042,6 +1050,7 @@ void HttpCallbackError(HTTPRequestHandle request, EHTTPStatusCode statusCode, js
 	ClientPrintAll(HUD_PRINTTALK, response.dump().c_str());
 }
 
+/*
 CON_COMMAND_CHAT(http, "<get/post/patch/put/delete> <url> [content] - Test an HTTP request")
 {
 	if (args.ArgC() < 3)
@@ -1073,3 +1082,4 @@ CON_COMMAND_CHAT(discordbot, "<bot> <message> - Send a message to a discord webh
 	g_pDiscordBotManager->PostDiscordMessage(args[1], args[2]);
 }
 #endif // _DEBUG
+*/
