@@ -473,7 +473,7 @@ bool IgnitePawn(CCSPlayerPawn* pPawn, float flDuration, CBaseEntity* pInflictor,
 		if (!hInflictor.Get())
 			info.m_hInflictor.Set(hAttacker);
 
-		pPawn->TakeDamage(info);
+		// pPawn->TakeDamage(info);
 
 		pPawn->m_flVelocityModifier = g_cvarBurnSlowdown.Get();
 
