@@ -69,7 +69,7 @@ DECLARE_DETOUR(IsHearingClient, Detour_IsHearingClient);
 DECLARE_DETOUR(TriggerPush_Touch, Detour_TriggerPush_Touch);
 //DECLARE_DETOUR(CBaseEntity_TakeDamageOld, Detour_CBaseEntity_TakeDamageOld);
 //DECLARE_DETOUR(CCSPlayer_WeaponServices_CanUse, Detour_CCSPlayer_WeaponServices_CanUse);
-//DECLARE_DETOUR(CEntityIdentity_AcceptInput, Detour_CEntityIdentity_AcceptInput);
+DECLARE_DETOUR(CEntityIdentity_AcceptInput, Detour_CEntityIdentity_AcceptInput);
 DECLARE_DETOUR(CNavMesh_GetNearestNavArea, Detour_CNavMesh_GetNearestNavArea);
 DECLARE_DETOUR(ProcessMovement, Detour_ProcessMovement);
 DECLARE_DETOUR(ProcessUsercmds, Detour_ProcessUsercmds);
@@ -382,6 +382,7 @@ void FASTCALL Detour_CCSPlayer_WeaponServices_EquipWeapon(CCSPlayer_WeaponServic
 
 	return CCSPlayer_WeaponServices_EquipWeapon(pWeaponServices, pPlayerWeapon);
 }
+*/
 
 bool FASTCALL Detour_CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSymbolLarge* pInputName, CEntityInstance* pActivator, CEntityInstance* pCaller, variant_t* value, int nOutputID)
 {
@@ -474,7 +475,7 @@ bool FASTCALL Detour_CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSym
 
 	return CEntityIdentity_AcceptInput(pThis, pInputName, pActivator, pCaller, value, nOutputID);
 }
-*/
+
 
 CConVar<bool> g_cvarBlockNavLookup("cs2f_block_nav_lookup", FCVAR_NONE, "Whether to block navigation mesh lookup, improves server performance but breaks bot navigation", false);
 
