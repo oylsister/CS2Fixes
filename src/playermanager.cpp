@@ -953,12 +953,19 @@ void CPlayerManager::CheckHideDistances()
 
 		auto pPawn = pController->GetPlayerPawn();
 
-		if (!pPawn || !pPawn->IsAlive())
+		if (!pPawn)
 			continue;
+
+		if (!pPawn->IsAlive() || pController->m_iTeamNum == CS_TEAM_SPECTATOR)
+		{
+			player->SetTransmit(i, false);
+			continue;
+		}
 
 		auto vecPosition = pPawn->GetAbsOrigin();
 		int team = pController->m_iTeamNum;
 
+		/*
 		for (int j = 0; j < GetGlobals()->maxClients; j++)
 		{
 			if (j == i)
@@ -973,6 +980,39 @@ void CPlayerManager::CheckHideDistances()
 				// TODO: Unhide dead pawns if/when valve fixes the crash
 				if (pTargetPawn && (!g_cvarHideTeammatesOnly.Get() || pTargetController->m_iTeamNum == team))
 					player->SetTransmit(j, pTargetPawn->GetAbsOrigin().DistToSqr(vecPosition) <= hideDistance * hideDistance);
+			}
+		}
+		*/
+
+		for (int j = 0; j < GetGlobals()->maxClients; j++)
+		{
+			if (j == i)
+				continue;
+
+			CCSPlayerController* pTargetController = CCSPlayerController::FromSlot(j);
+
+			if (!pTargetController)
+				continue;
+
+			auto pTargetPawn = pTargetController->GetPlayerPawn();
+
+			if (!pTargetPawn)
+				continue;
+
+			if (!pTargetPawn->IsAlive() || pTargetController->m_iTeamNum == CS_TEAM_SPECTATOR)
+			{
+				player->SetTransmit(j, false);
+				continue;
+			}
+
+			if (!g_cvarHideTeammatesOnly.Get() || pTargetController->m_iTeamNum == team)
+			{
+				bool shouldTransmit = pTargetPawn->GetAbsOrigin().DistToSqr(vecPosition) <= hideDistance * hideDistance;
+				player->SetTransmit(j, shouldTransmit);
+
+				printf("Player %d (%s) visibility to Player %d (%s): %s\n",
+						i, pController->GetPlayerName(), j, pTargetController->GetPlayerName(),
+						shouldTransmit ? "Visible" : "Hidden");
 			}
 		}
 	}
