@@ -68,3 +68,9 @@ public:
 		return reinterpret_cast<CCSPlayer_CameraServices*>(m_pCameraServices());
 	}
 };
+
+class CCSObserverPawn : public CCSPlayerPawnBase
+{
+public:
+    DECLARE_SCHEMA_CLASS(CCSObserverPawn);
+};
