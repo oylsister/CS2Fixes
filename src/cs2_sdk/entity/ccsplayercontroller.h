@@ -42,8 +42,10 @@ public:
 	SCHEMA_FIELD(bool, m_bPawnIsAlive)
 	SCHEMA_FIELD(int32_t, m_nDisconnectionTick)
 	SCHEMA_FIELD(CHandle<CCSPlayerPawn>, m_hPlayerPawn)
-	SCHEMA_FIELD(CHandle<CCSPlayerPawnBase>, m_hObserverPawn)
+	SCHEMA_FIELD(CHandle<CCSObserverPawn>, m_hObserverPawn)
+	//SCHEMA_FIELD(CHandle<CCSPlayerPawnBase>, m_hObserverPawn)
 	SCHEMA_FIELD(CHandle<CCSPlayerController>, m_hOriginalControllerOfCurrentPawn)
+	SCHEMA_FIELD(ObserverMode_t, m_DesiredObserverMode)
 	SCHEMA_FIELD(uint32_t, m_iPawnHealth)
 	SCHEMA_FIELD(int32_t, m_iPawnArmor)
 	SCHEMA_FIELD(int32_t, m_iScore)
@@ -66,6 +68,11 @@ public:
 	CCSPlayerPawn* GetPlayerPawn()
 	{
 		return m_hPlayerPawn().Get();
+	}
+
+	CCSObserverPawn *GetObserverPawn()
+	{
+		return m_hObserverPawn.Get();
 	}
 
 	ZEPlayer* GetZEPlayer()

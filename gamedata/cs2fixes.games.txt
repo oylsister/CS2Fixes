@@ -544,6 +544,11 @@
 				"windows"    "46" // 48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 4C 8B 05 ? ? ? ? 48 8B D9
 				"linux"      "45"
 			}
+			"CBaseEntity::Event_Killed"
+			{
+				"windows"    "118"
+				"linux"      "117"
+			}
 		}
 		"Patches"
 		{

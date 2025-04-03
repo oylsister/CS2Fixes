@@ -67,6 +67,7 @@ public: // hooks
 	void Hook_CGamePlayerEquipUse(class InputData_t*);
 	void Hook_CGamePlayerEquipPrecache(void**);
 	void Hook_StartupServer(const GameSessionConfiguration_t& config, ISource2WorldSession*, const char*);
+	int8 Hook_OnPlayerPawnKilled(void* info);
 	void Hook_ApplyGameSettings(KeyValues* pKV);
 	void Hook_CreateWorkshopMapGroup(const char* name, const CUtlStringList& mapList);
 	void Hook_GoToIntermission(bool bAbortedMatch);
