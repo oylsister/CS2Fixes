@@ -942,8 +942,9 @@ void CPlayerManager::CheckHideDistances()
 
 		player->ClearTransmit();
 		auto hideDistance = player->GetHideDistance();
+		auto hideStatus = player->GetHideStatus();
 
-		if (!hideDistance)
+		if (!hideDistance || !hideStatus)
 			continue;
 
 		CCSPlayerController* pController = CCSPlayerController::FromSlot(i);
