@@ -694,7 +694,17 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 	}
 	else if (info->m_MessageId == TE_WorldDecalId)
 	{
-		*(uint64*)clients &= ~g_playerManager->GetStopDecalsMask();
+		*(uint64*)clients = 0; // Send to no one, this is a world decal
+	}
+	else if (info->m_MessageId == TE_EffectDispatchId)
+	{
+		auto msg = const_cast<CNetMessage*>(pData)->ToPB<CMsgTEEffectDispatch>();
+		if (msg->has_effectdata())
+		{
+			CMsgEffectData effectData = msg->effectdata();
+			if (effectData.has_effectname() && (effectData.effectname() == 9 || effectData.effectname() == 4))
+				*(uint64*) clients = 0; // Send to no one, this is a world decal
+		}
 	}
 	else if (info->m_MessageId == GE_Source1LegacyGameEvent)
 	{
