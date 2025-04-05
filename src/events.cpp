@@ -194,7 +194,7 @@ GAME_EVENT_F(player_spawn)
 	});
 
 	// Hide status reset
-	new CTimer(1.2f, false, false, [hController]() {
+	new CTimer(1.7f, false, false, [hController]() {
 		CCSPlayerController* pController = hController.Get();
 
 		if (!pController)
@@ -202,7 +202,8 @@ GAME_EVENT_F(player_spawn)
 
 		ZEPlayer* pPlayer = pController->GetZEPlayer();
 
-		if (pPlayer && pPlayer->GetHideStatus())
+		// reset hide status on spawn
+		if (pPlayer)
 			pPlayer->SetHideStatus(true);
 
 		return -1.0f;

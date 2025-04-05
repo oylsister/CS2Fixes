@@ -270,7 +270,7 @@ public:
 	bool IsMuted() { return m_bMuted; }
 	bool IsGagged() { return m_bGagged; }
 	bool IsEbanned() { return m_bEbanned; }
-	bool ShouldBlockTransmit(int index) { return m_shouldTransmit.Get(index) && m_bHideEnabled;}
+	bool ShouldBlockTransmit(int index) { return m_shouldTransmit.Get(index);}
 	int GetHideDistance();
 	CPlayerSlot GetPlayerSlot() { return m_slot; }
 	int GetTotalDamage() { return m_iTotalDamage; }
