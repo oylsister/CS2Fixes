@@ -1,4 +1,4 @@
-﻿/**
+/**
  * =============================================================================
  * CS2Fixes
  * Copyright (C) 2023-2025 Source2ZE
@@ -53,15 +53,9 @@ extern CGameEntitySystem* g_pEntitySystem;
 extern IVEngineServer2* g_pEngineServer2;
 extern ISteamHTTP* g_http;
 
-bool g_bEnableCommands;
-bool g_bEnableAdminCommands;
-
-FAKE_BOOL_CVAR(cs2f_commands_enable, "Whether to enable chat commands", g_bEnableCommands, false, 0)
-FAKE_BOOL_CVAR(cs2f_admin_commands_enable, "Whether to enable admin chat commands", g_bEnableAdminCommands, false, 0)
-
-bool g_bEnableWeapons = false;
-
-FAKE_BOOL_CVAR(cs2f_weapons_enable, "Whether to enable weapon commands", g_bEnableWeapons, false, false)
+CConVar<bool> g_cvarEnableCommands("cs2f_commands_enable", FCVAR_NONE, "Whether to enable chat commands", false);
+CConVar<bool> g_cvarEnableAdminCommands("cs2f_admin_commands_enable", FCVAR_NONE, "Whether to enable admin chat commands", false);
+CConVar<bool> g_cvarEnableWeapons("cs2f_weapons_enable", FCVAR_NONE, "Whether to enable weapon commands", false);
 
 int GetGrenadeAmmo(CCSPlayer_WeaponServices* pWeaponServices, const WeaponInfo_t* pWeaponInfo)
 {
@@ -104,7 +98,7 @@ int GetGrenadeAmmoTotal(CCSPlayer_WeaponServices* pWeaponServices)
 
 void ParseWeaponCommand(const CCommand& args, CCSPlayerController* player)
 {
-	if (!g_bEnableWeapons || !player || !player->m_hPawn())
+	if (!g_cvarEnableWeapons.Get() || !player || !player->m_hPawn())
 		return;
 
 	VPROF("ParseWeaponCommand");
@@ -143,12 +137,10 @@ void ParseWeaponCommand(const CCommand& args, CCSPlayerController* player)
 
 	if (pWeaponInfo->m_eSlot == GEAR_SLOT_GRENADES)
 	{
-		// CONVAR_TODO
-		ConVar* cvar = g_pCVar->GetConVar(g_pCVar->FindConVar("ammo_grenade_limit_default"));
-		// HACK: values is actually the cvar value itself, hence this ugly cast.
-		int iGrenadeLimitDefault = *(int*)&cvar->values;
-		cvar = g_pCVar->GetConVar(g_pCVar->FindConVar("ammo_grenade_limit_total"));
-		int iGrenadeLimitTotal = *(int*)&cvar->values;
+		static ConVarRefAbstract ammo_grenade_limit_default("ammo_grenade_limit_default"), ammo_grenade_limit_total("ammo_grenade_limit_total");
+
+		int iGrenadeLimitDefault = ammo_grenade_limit_default.GetInt();
+		int iGrenadeLimitTotal = ammo_grenade_limit_total.GetInt();
 
 		int iMatchingGrenades = GetGrenadeAmmo(pWeaponServices, pWeaponInfo);
 		int iTotalGrenades = GetGrenadeAmmoTotal(pWeaponServices);
@@ -224,28 +216,9 @@ void ParseWeaponCommand(const CCommand& args, CCSPlayerController* player)
 
 	player->m_pInGameMoneyServices->m_iAccount = money - pWeaponInfo->m_nPrice;
 
-	// If the weapon spawn goes through AWS, it needs to be reselected with a 1 tick delay (some fuckery with team change?)
+	// If the weapon spawn goes through AWS, it needs to be manually selected because it spawns dropped in-world due to ZR enforcing mp_weapons_allow_* cvars against T's
 	if (pWeaponInfo->m_eSlot == GEAR_SLOT_RIFLE || pWeaponInfo->m_eSlot == GEAR_SLOT_PISTOL)
-	{
-		CHandle<CBasePlayerWeapon> hWeapon = pWeapon->GetHandle();
-		CHandle<CCSPlayerPawn> hPawn = pPawn->GetHandle();
-
-		new CTimer(0.0f, false, false, [hWeapon, hPawn]() {
-			CBasePlayerWeapon* pWeapon = hWeapon.Get();
-			CCSPlayerPawn* pPawn = hPawn.Get();
-
-			if (!pWeapon || !pPawn)
-				return -1.0f;
-
-			CCSPlayer_WeaponServices* pWeaponServices = pPawn->m_pWeaponServices;
-
-			if (!pWeaponServices)
-				return -1.0f;
-
-			pWeaponServices->SelectItem(pWeapon);
-			return -1.0f;
-		});
-	}
+		pWeaponServices->SelectItem(pWeapon);
 
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You have purchased %s for $%i", pWeaponInfo->m_pName, pWeaponInfo->m_nPrice);
 }
@@ -272,12 +245,11 @@ void RegisterWeaponCommands()
 		for (const auto& alias : aliases)
 		{
 			new CChatCommand(alias.c_str(), ParseWeaponCommand, "- Buys this weapon", ADMFLAG_NONE, CMDFLAG_NOHELP);
-			ConCommandRefAbstract ref;
 
 			char cmdName[64];
 			V_snprintf(cmdName, sizeof(cmdName), "%s%s", COMMAND_PREFIX, alias.c_str());
 
-			new ConCommand(&ref, cmdName, WeaponCommandCallback, "Buys this weapon", FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_LINKED_CONCOMMAND);
+			new ConCommand(cmdName, WeaponCommandCallback, "Buys this weapon", FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_LINKED_CONCOMMAND);
 		}
 	}
 }
@@ -316,7 +288,7 @@ bool CChatCommand::CheckCommandAccess(CCSPlayerController* pPlayer, uint64 flags
 
 	if ((flags & FLAG_LEADER) == FLAG_LEADER)
 	{
-		if (!g_bEnableLeader)
+		if (!g_cvarEnableLeader.Get())
 			return false;
 		if (!pZEPlayer->IsAdminFlagSet(FLAG_LEADER))
 		{
@@ -325,7 +297,7 @@ bool CChatCommand::CheckCommandAccess(CCSPlayerController* pPlayer, uint64 flags
 				ClientPrint(pPlayer, HUD_PRINTTALK, CHAT_PREFIX "You must be a leader to use this command.");
 				return false;
 			}
-			else if (g_bLeaderActionsHumanOnly && pPlayer->m_iTeamNum != CS_TEAM_CT)
+			else if (g_cvarLeaderActionsHumanOnly.Get() && pPlayer->m_iTeamNum != CS_TEAM_CT)
 			{
 				ClientPrint(pPlayer, HUD_PRINTTALK, CHAT_PREFIX "You must be a human to use this command.");
 				return false;
@@ -396,13 +368,11 @@ void ClientPrint(CCSPlayerController* player, int hud_dest, const char* msg, ...
 	delete data;
 }
 
-bool g_bEnableStopSound = false;
-
-FAKE_BOOL_CVAR(cs2f_stopsound_enable, "Whether to enable stopsound", g_bEnableStopSound, false, false)
+CConVar<bool> g_cvarEnableStopSound("cs2f_stopsound_enable", FCVAR_NONE, "Whether to enable stopsound", false);
 
 CON_COMMAND_CHAT(stopsound, "- Toggle weapon sounds")
 {
-	if (!g_bEnableStopSound)
+	if (!g_cvarEnableStopSound.Get())
 		return;
 
 	if (!player)
@@ -438,13 +408,11 @@ CON_COMMAND_CHAT(toggledecals, "- Toggle world decals, if you're into having 10 
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You have %s world decals.", bSet ? "disabled" : "enabled");
 }
 
-bool g_bEnableNoShake = false;
-FAKE_BOOL_CVAR(cs2f_noshake_enable, "Whether to enable noshake command", g_bEnableNoShake, false, false)
-float g_flMaxShakeAmp = -1.0;
-FAKE_FLOAT_CVAR(cs2f_maximum_shake_amplitude, "Shaking Amplitude bigger than this will be clamped", g_flMaxShakeAmp, -1.0, false)
+CConVar<bool> g_cvarEnableNoShake("cs2f_noshake_enable", FCVAR_NONE, "Whether to enable noshake command", false);
+CConVar<float> g_cvarMaxShakeAmp("cs2f_maximum_shake_amplitude", FCVAR_NONE, "Shaking Amplitude bigger than this will be clamped", -1.0f, true, -1.0f, true, 16.0f);
 CON_COMMAND_CHAT(noshake, "- toggle noshake")
 {
-	if (!g_bEnableNoShake)
+	if (!g_cvarEnableNoShake.Get())
 		return;
 
 	if (!player)
@@ -460,18 +428,14 @@ CON_COMMAND_CHAT(noshake, "- toggle noshake")
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You have %s noshake.", bSet ? "enabled" : "disabled");
 }
 
-bool g_bEnableHide = false;
-static int g_iDefaultHideDistance = 250;
-static int g_iMaxHideDistance = 2000;
-
-FAKE_BOOL_CVAR(cs2f_hide_enable, "Whether to enable hide (WARNING: randomly crashes clients since 2023-12-13 CS2 update)", g_bEnableHide, false, false)
-FAKE_INT_CVAR(cs2f_hide_distance_default, "The default distance for hide", g_iDefaultHideDistance, 250, false)
-FAKE_INT_CVAR(cs2f_hide_distance_max, "The max distance for hide", g_iMaxHideDistance, 2000, false)
+CConVar<bool> g_cvarEnableHide("cs2f_hide_enable", FCVAR_NONE, "Whether to enable hide (WARNING: randomly crashes clients since 2023-12-13 CS2 update)", false);
+CConVar<int> g_cvarDefaultHideDistance("cs2f_hide_distance_default", FCVAR_NONE, "The default distance for hide", 250, true, 0, false, 0);
+CConVar<int> g_cvarMaxHideDistance("cs2f_hide_distance_max", FCVAR_NONE, "The max distance for hide", 2000, true, 0, false, 0);
 
 CON_COMMAND_CHAT(hide, "<distance> - Hide nearby players")
 {
 	// Silently return so the command is completely hidden
-	if (!g_bEnableHide)
+	if (!g_cvarEnableHide.Get())
 		return;
 
 	if (!player)
@@ -483,13 +447,13 @@ CON_COMMAND_CHAT(hide, "<distance> - Hide nearby players")
 	int distance;
 
 	if (args.ArgC() < 2)
-		distance = g_iDefaultHideDistance;
+		distance = g_cvarDefaultHideDistance.Get();
 	else
 		distance = V_StringToInt32(args[1], -1);
 
-	if (distance > g_iMaxHideDistance || distance < 0)
+	if (distance > g_cvarMaxHideDistance.Get() || distance < 0)
 	{
-		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You can only hide players between 0 and %i units away.", g_iMaxHideDistance);
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You can only hide players between 0 and %i units away.", g_cvarMaxHideDistance.Get());
 		return;
 	}
 
@@ -514,36 +478,100 @@ CON_COMMAND_CHAT(hide, "<distance> - Hide nearby players")
 		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Now hiding players within %i units.", distance);
 }
 
-CON_COMMAND_CHAT(help, "- Display list of commands in console")
+void PrintHelp(const CCommand& args, CCSPlayerController* player)
 {
 	std::vector<std::string> rgstrCommands;
-	if (!player)
+	if (args.ArgC() < 2)
 	{
-		ClientPrint(player, HUD_PRINTCONSOLE, "The list of all commands is:");
-
-		FOR_EACH_VEC(g_CommandList, i)
+		if (!player)
 		{
-			CChatCommand* cmd = g_CommandList[i];
+			ClientPrint(player, HUD_PRINTCONSOLE, "The list of all commands is:");
 
-			if (!cmd->IsCommandFlagSet(CMDFLAG_NOHELP))
-				rgstrCommands.push_back(std::string("c_") + cmd->GetName() + " " + cmd->GetDescription());
+			FOR_EACH_VEC(g_CommandList, i)
+			{
+				CChatCommand* cmd = g_CommandList[i];
+
+				if (!cmd->IsCommandFlagSet(CMDFLAG_NOHELP))
+					rgstrCommands.push_back(std::string("c_") + cmd->GetName() + " " + cmd->GetDescription());
+			}
+		}
+		else
+		{
+			ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "The list of all available commands will be shown in console.");
+			ClientPrint(player, HUD_PRINTCONSOLE, "The list of all commands you can use is:");
+
+			ZEPlayer* pZEPlayer = player->GetZEPlayer();
+
+			FOR_EACH_VEC(g_CommandList, i)
+			{
+				CChatCommand* cmd = g_CommandList[i];
+				uint64 flags = cmd->GetAdminFlags();
+
+				if ((pZEPlayer->IsAdminFlagSet(flags) || ((flags & FLAG_LEADER) == FLAG_LEADER && pZEPlayer->IsLeader()))
+					&& !cmd->IsCommandFlagSet(CMDFLAG_NOHELP))
+					rgstrCommands.push_back(std::string("!") + cmd->GetName() + " " + cmd->GetDescription());
+			}
 		}
 	}
 	else
 	{
-		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "The list of all available commands will be shown in console.");
-		ClientPrint(player, HUD_PRINTCONSOLE, "The list of all commands you can use is:");
+		const char* pszSearchTerm = args[1];
+		bool bOnlyCheckStart = false;
 
-		ZEPlayer* pZEPlayer = player->GetZEPlayer();
-
-		FOR_EACH_VEC(g_CommandList, i)
+		// If a user's search starts with a prefix needed to actually use a command,
+		// assume that they only want to see commands starting with that substring
+		if (V_strnicmp(args[1], "c_", 2) == 0)
 		{
-			CChatCommand* cmd = g_CommandList[i];
-			uint64 flags = cmd->GetAdminFlags();
-
-			if (pZEPlayer->IsAdminFlagSet(flags) && !cmd->IsCommandFlagSet(CMDFLAG_NOHELP))
-				rgstrCommands.push_back(std::string("!") + cmd->GetName() + " " + cmd->GetDescription());
+			bOnlyCheckStart = true;
+			pszSearchTerm++;
+			pszSearchTerm++;
 		}
+		else if (V_strnicmp(args[1], "!", 1) == 0 || V_strnicmp(args[1], "/", 1) == 0)
+		{
+			bOnlyCheckStart = true;
+			pszSearchTerm++;
+		}
+
+		if (!player)
+		{
+			FOR_EACH_VEC(g_CommandList, i)
+			{
+				CChatCommand* cmd = g_CommandList[i];
+
+				if (!cmd->IsCommandFlagSet(CMDFLAG_NOHELP)
+					&& ((!bOnlyCheckStart && V_stristr(cmd->GetName(), pszSearchTerm))
+						|| (bOnlyCheckStart && V_strnicmp(cmd->GetName(), pszSearchTerm, strlen(pszSearchTerm)) == 0)))
+					rgstrCommands.push_back(std::string("c_") + cmd->GetName() + " " + cmd->GetDescription());
+			}
+		}
+		else
+		{
+			ZEPlayer* pZEPlayer = player->GetZEPlayer();
+
+			FOR_EACH_VEC(g_CommandList, i)
+			{
+				CChatCommand* cmd = g_CommandList[i];
+				uint64 flags = cmd->GetAdminFlags();
+
+				if ((pZEPlayer->IsAdminFlagSet(flags) || ((flags & FLAG_LEADER) == FLAG_LEADER && pZEPlayer->IsLeader()))
+					&& !cmd->IsCommandFlagSet(CMDFLAG_NOHELP)
+					&& ((!bOnlyCheckStart && V_stristr(cmd->GetName(), pszSearchTerm))
+						|| (bOnlyCheckStart && V_strnicmp(cmd->GetName(), pszSearchTerm, strlen(pszSearchTerm)) == 0)))
+					rgstrCommands.push_back(std::string("!") + cmd->GetName() + " " + cmd->GetDescription());
+			}
+		}
+
+		if (rgstrCommands.size() == 0)
+		{
+			ClientPrint(player, HUD_PRINTCONSOLE, CHAT_PREFIX "No commands matched \"%s\".", args[1]);
+			if (player)
+				ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "No commands matched \"%s\".", args[1]);
+			return;
+		}
+
+		ClientPrint(player, HUD_PRINTCONSOLE, "The list of all commands matching \"%s\" is:", args[1]);
+		if (player)
+			ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "The list of all commands matching \"%s\" will be shown in console.", args[1]);
 	}
 
 	std::sort(rgstrCommands.begin(), rgstrCommands.end());
@@ -553,6 +581,16 @@ CON_COMMAND_CHAT(help, "- Display list of commands in console")
 
 	if (player)
 		ClientPrint(player, HUD_PRINTCONSOLE, "! can be replaced with / for a silent chat command, or c_ for console usage");
+}
+
+CON_COMMAND_CHAT(help, "- Display list of commands in console")
+{
+	PrintHelp(args, player);
+}
+
+CON_COMMAND_CHAT(find, "<text> - Search for specific commands and list them in console")
+{
+	PrintHelp(args, player);
 }
 
 CON_COMMAND_CHAT(spec, "[name] - Spectate another player or join spectators")
@@ -649,7 +687,7 @@ CON_COMMAND_CHAT(info, "<name> - Get a player's information")
 		return;
 
 	ZEPlayer* pPlayer = player ? player->GetZEPlayer() : nullptr;
-	bool bIsAdmin = pPlayer ? pPlayer->IsAdminFlagSet(ADMFLAG_GENERIC) : true;
+	bool bIsAdmin = pPlayer ? pPlayer->IsAdminFlagSet(ADMFLAG_RCON) : true;
 
 	for (int i = 0; i < iNumClients; i++)
 	{
@@ -994,18 +1032,18 @@ CON_COMMAND_CHAT(setinteraction, "<flags> - Set a player's interaction flags")
 	}
 }
 
-void HttpCallback(HTTPRequestHandle request, json response)
+void HttpCallbackSuccess(HTTPRequestHandle request, json response)
 {
 	ClientPrintAll(HUD_PRINTTALK, response.dump().c_str());
 }
 
-CON_COMMAND_CHAT(http, "<get/post> <url> [content] - Test an HTTP request")
+void HttpCallbackError(HTTPRequestHandle request, EHTTPStatusCode statusCode, json response)
 {
-	if (!g_http)
-	{
-		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Steam HTTP interface is not available!");
-		return;
-	}
+	ClientPrintAll(HUD_PRINTTALK, response.dump().c_str());
+}
+
+CON_COMMAND_CHAT(http, "<get/post/patch/put/delete> <url> [content] - Test an HTTP request")
+{
 	if (args.ArgC() < 3)
 	{
 		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Usage: !http <get/post> <url> [content]");
@@ -1013,9 +1051,15 @@ CON_COMMAND_CHAT(http, "<get/post> <url> [content] - Test an HTTP request")
 	}
 
 	if (!V_strcmp(args[1], "get"))
-		g_HTTPManager.GET(args[2], &HttpCallback);
+		g_HTTPManager.Get(args[2], &HttpCallbackSuccess, &HttpCallbackError);
 	else if (!V_strcmp(args[1], "post"))
-		g_HTTPManager.POST(args[2], args[3], &HttpCallback);
+		g_HTTPManager.Post(args[2], args[3], &HttpCallbackSuccess, &HttpCallbackError);
+	else if (!V_strcmp(args[1], "patch"))
+		g_HTTPManager.Patch(args[2], args[3], &HttpCallbackSuccess, &HttpCallbackError);
+	else if (!V_strcmp(args[1], "put"))
+		g_HTTPManager.Put(args[2], args[3], &HttpCallbackSuccess, &HttpCallbackError);
+	else if (!V_strcmp(args[1], "delete"))
+		g_HTTPManager.Delete(args[2], args[3], &HttpCallbackSuccess, &HttpCallbackError);
 }
 
 CON_COMMAND_CHAT(discordbot, "<bot> <message> - Send a message to a discord webhook")
