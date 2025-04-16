@@ -117,7 +117,7 @@ SH_DECL_HOOK3_void(ICvar, DispatchConCommand, SH_NOATTRIB, 0, ConCommandRef, con
 SH_DECL_MANUALHOOK1_void(CGamePlayerEquipUse, 0, 0, 0, InputData_t*);
 SH_DECL_MANUALHOOK1_void(CGamePlayerEquipPrecache, 0, 0, 0, void**);
 SH_DECL_MANUALHOOK2_void(CreateWorkshopMapGroup, 0, 0, 0, const char*, const CUtlStringList&);
-SH_DECL_MANUALHOOK1(OnTakeDamage_Alive, 0, 0, 0, bool, CTakeDamageInfoContainer*);
+//SH_DECL_MANUALHOOK1(OnTakeDamage_Alive, 0, 0, 0, bool, CTakeDamageInfoContainer*);
 SH_DECL_MANUALHOOK1_void(CheckMovingGround, 0, 0, 0, double);
 SH_DECL_HOOK2(IGameEventManager2, LoadEventsFromFile, SH_NOATTRIB, 0, int, const char*, bool);
 SH_DECL_MANUALHOOK1_void(GoToIntermission, 0, 0, 0, bool);
@@ -274,6 +274,7 @@ bool CS2Fixes::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool
 		bRequiredInitLoaded = false;
 	}
 
+	/*
 	offset = g_GameConfig->GetOffset("CBasePlayerPawn::OnTakeDamage_Alive");
 	if (offset == -1)
 	{
@@ -282,6 +283,7 @@ bool CS2Fixes::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool
 	}
 	SH_MANUALHOOK_RECONFIGURE(OnTakeDamage_Alive, offset, 0, 0);
 	g_iOnTakeDamageAliveId = SH_ADD_MANUALDVPHOOK(OnTakeDamage_Alive, pCCSPlayerPawnVTable, SH_MEMBER(this, &CS2Fixes::Hook_OnTakeDamage_Alive), false);
+	*/
 
 	const auto pCCSPlayer_MovementServicesVTable = modules::server->FindVirtualTable("CCSPlayer_MovementServices");
 	offset = g_GameConfig->GetOffset("CCSPlayer_MovementServices::CheckMovingGround");
@@ -526,8 +528,7 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 		bool bGagged = pController && pController->GetZEPlayer()->IsGagged();
 		bool bFlooding = pController && pController->GetZEPlayer()->IsFlooding();
 		bool bAdminChat = bTeamSay && *args[1] == '@';
-		bool bSilent = *args[1] == '/' || bAdminChat;
-		bool bCommand = *args[1] == '!' || *args[1] == '/';
+		bool bCommand = *args[1] == '!';
 
 		// Chat messages should generate events regardless
 		if (pController)
@@ -544,7 +545,7 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 			}
 		}
 
-		if (!bGagged && !bSilent && !bFlooding)
+		if (!bGagged && !bFlooding)
 		{
 			SH_CALL(g_pCVar, &ICvar::DispatchConCommand)
 			(cmdHandle, ctx, args);
@@ -584,7 +585,7 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 				pszMessage += 1;
 
 			// Host_Say at some point removes the trailing " for whatever reason, so we only remove if it was never called
-			if ((bGagged || bSilent || bFlooding) && pszMessage[V_strlen(pszMessage) - 1] == '"')
+			if ((bGagged || bFlooding) && pszMessage[V_strlen(pszMessage) - 1] == '"')
 				pszMessage[V_strlen(pszMessage) - 1] = '\0';
 
 			ParseChatCommand(pszMessage, pController);
@@ -693,7 +694,17 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 	}
 	else if (info->m_MessageId == TE_WorldDecalId)
 	{
-		*(uint64*)clients &= ~g_playerManager->GetStopDecalsMask();
+		*(uint64*)clients = 0; // Send to no one, this is a world decal
+	}
+	else if (info->m_MessageId == TE_EffectDispatchId)
+	{
+		auto msg = const_cast<CNetMessage*>(pData)->ToPB<CMsgTEEffectDispatch>();
+		if (msg->has_effectdata())
+		{
+			CMsgEffectData effectData = msg->effectdata();
+			if (effectData.has_effectname() && (effectData.effectname() == 9 || effectData.effectname() == 4))
+				*(uint64*) clients = 0; // Send to no one, this is a world decal
+		}
 	}
 	else if (info->m_MessageId == GE_Source1LegacyGameEvent)
 	{
@@ -936,6 +947,7 @@ void CS2Fixes::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount
 			if (!pController || pController->m_bIsHLTV || j == iPlayerSlot)
 				continue;
 
+			/*
 			// Don't transmit other players' flashlights
 			CBarnLight* pFlashLight = pController->IsConnected() ? g_playerManager->GetPlayer(j)->GetFlashLight() : nullptr;
 
@@ -949,6 +961,7 @@ void CS2Fixes::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount
 				if (pHud)
 					pInfo->m_pTransmitEntity->Clear(pHud->entindex());
 			}
+			*/
 
 			// Always transmit other players if spectating
 			if (!g_cvarEnableHide.Get() || pSelfController->GetPawnState() == STATE_OBSERVER_MODE)
@@ -968,13 +981,16 @@ void CS2Fixes::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount
 				pInfo->m_pTransmitEntity->Clear(pPawn->entindex());
 		}
 
+		/*
 		// Don't transmit glow model to it's owner
 		CBaseModelEntity* pGlowModel = pSelfZEPlayer->GetGlowModel();
 
 		if (pGlowModel)
 			pInfo->m_pTransmitEntity->Clear(pGlowModel->entindex());
+		*/
 	}
 }
+
 
 void CS2Fixes::Hook_ApplyGameSettings(KeyValues* pKV)
 {
@@ -999,6 +1015,7 @@ void CS2Fixes::Hook_GoToIntermission(bool bAbortedMatch)
 
 CConVar<bool> g_cvarDropMapWeapons("cs2f_drop_map_weapons", FCVAR_NONE, "Whether to force drop map-spawned weapons on death", false);
 
+/*
 bool CS2Fixes::Hook_OnTakeDamage_Alive(CTakeDamageInfoContainer* pInfoContainer)
 {
 	CCSPlayerPawn* pPawn = META_IFACEPTR(CCSPlayerPawn);
@@ -1022,6 +1039,7 @@ bool CS2Fixes::Hook_OnTakeDamage_Alive(CTakeDamageInfoContainer* pInfoContainer)
 
 	RETURN_META_VALUE(MRES_IGNORED, true);
 }
+*/
 
 CConVar<bool> g_cvarFixPhysicsPlayerShuffle("cs2f_shuffle_player_physics_sim", FCVAR_NONE, "Whether to enable shuffle player list in physics simulate", false);
 

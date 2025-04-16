@@ -112,6 +112,7 @@ void PrintMultiAdminAction(ETargetType nType, const char* pszAdminName, const ch
 	}
 }
 
+/*
 CON_COMMAND_F(c_reload_admins, "- Reload admin config", FCVAR_SPONLY | FCVAR_LINKED_CONCOMMAND)
 {
 	if (!g_pAdminSystem->LoadAdmins() || !GetGlobals())
@@ -317,7 +318,7 @@ CON_COMMAND_CHAT_FLAGS(slap, "<name> [damage] - Slap a player", ADMFLAG_SLAY)
 				pAttacker = player->GetPlayerPawn();
 
 			CTakeDamageInfo info(pAttacker, pAttacker, nullptr, flDamage, DMG_GENERIC);
-			pPawn->TakeDamage(info);
+			//pPawn->TakeDamage(info);
 		}
 
 		if (iNumClients == 1)
@@ -474,6 +475,7 @@ CON_COMMAND_CHAT_FLAGS(reload_discord_bots, "- Reload discord bot config", ADMFL
 	g_pDiscordBotManager->LoadDiscordBotsConfig();
 	Message("Discord bot config reloaded\n");
 }
+*/
 
 CON_COMMAND_CHAT_FLAGS(entfire, "<name> <input> [parameter] - Fire outputs at entities", ADMFLAG_RCON)
 {
@@ -594,6 +596,7 @@ CON_COMMAND_CHAT_FLAGS(entfirecontroller, "<name> <input> [parameter] - Fire out
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Input successful on %i player controllers.", iFoundEnts);
 }
 
+/*
 CON_COMMAND_CHAT_FLAGS(hsay, "<message> - Say something as a hud hint", ADMFLAG_CHAT)
 {
 	if (args.ArgC() < 2)
@@ -1090,6 +1093,7 @@ CON_COMMAND_CHAT_FLAGS(add_dc, "<name> <SteamID 64> <IP Address> - Adds a fake p
 	g_pAdminSystem->AddDisconnectedPlayer(args[1], iSteamID, args[3]);
 }
 #endif
+*/
 
 CAdminSystem::CAdminSystem()
 {
