@@ -413,7 +413,11 @@ CON_COMMAND_CHAT(toggledecals, "- Toggle world decals, if you're into having 10 
 CConVar<bool> g_cvarEnableNoShake("cs2f_noshake_enable", FCVAR_NONE, "Whether to enable noshake command", false);
 CConVar<float> g_cvarMaxShakeAmp("cs2f_maximum_shake_amplitude", FCVAR_NONE, "Shaking Amplitude bigger than this will be clamped", -1.0f, true, -1.0f, true, 16.0f);
 
+
 /*
+CConVar<bool> g_cvarEnableNoShake("cs2f_noshake_enable", FCVAR_NONE, "Whether to enable noshake command", false);
+CConVar<float> g_cvarMaxShakeAmp("cs2f_maximum_shake_amplitude", FCVAR_NONE, "Shaking Amplitude bigger than this will be clamped", -1.0f, true, -1.0f, true, 16.0f);
+
 CON_COMMAND_CHAT(noshake, "- toggle noshake")
 {
 	if (!g_cvarEnableNoShake.Get())
@@ -1037,7 +1041,6 @@ CON_COMMAND_CHAT(setinteraction, "<flags> - Set a player's interaction flags")
 		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Setting interaction flags on %s from %llx to %llx.", pTarget->GetPlayerName(), oldInteractAs, newInteract);
 	}
 }
-
 */
 
 void HttpCallbackSuccess(HTTPRequestHandle request, json response)
