@@ -193,7 +193,6 @@ GAME_EVENT_F(player_spawn)
 		return -1.0f;
 	});
 
-	/*
 	// Hide status reset
 	new CTimer(1.7f, false, false, [hController]() {
 		CCSPlayerController* pController = hController.Get();
@@ -209,7 +208,6 @@ GAME_EVENT_F(player_spawn)
 
 		return -1.0f;
 	});
-	*/
 }
 
 CConVar<bool> g_cvarEnableTopDefender("cs2f_topdefender_enable", FCVAR_NONE, "Whether to use TopDefender", false);
@@ -259,7 +257,9 @@ GAME_EVENT_F(player_death)
 	{
 		pVictim->GetServerSideClient()->ForceFullUpdate();
 
-		//pVictimPlayer->SetHideStatus(false);
+		ZEPlayer* pVictimPlayer = pVictim->GetZEPlayer();
+		pVictimPlayer->SetHideStatus(false);
+		
 		new CTimer(0.7f, false, false, [pVictim]() {
 
 			if(!pVictim)
@@ -287,7 +287,6 @@ GAME_EVENT_F(player_death)
 		return;
 
 	ZEPlayer* pPlayer = pAttacker->GetZEPlayer();
-	ZEPlayer* pVictimPlayer = pVictim->GetZEPlayer();
 
 	if (!pPlayer)
 		return;
