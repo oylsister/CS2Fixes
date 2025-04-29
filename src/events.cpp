@@ -250,8 +250,35 @@ GAME_EVENT_F(player_death)
 	CCSPlayerController* pAttacker = (CCSPlayerController*)pEvent->GetPlayerController("attacker");
 	CCSPlayerController* pVictim = (CCSPlayerController*)pEvent->GetPlayerController("userid");
 
+	if(!pAttacker || !pVictim)
+		return;
+
+	pVictim->GetServerSideClient()->ForceFullUpdate();
+
+	//pVictimPlayer->SetHideStatus(false);
+	new CTimer(0.7f, false, false, [pVictim]() {
+
+		if(!pVictim)
+			return -1.0f;
+
+		auto pawn = pVictim->GetPawn();
+		if(pawn)
+		{
+			auto pObserver = pawn->m_pObserverServices();
+
+			if(pObserver)
+			{
+				pObserver->m_hObserverTarget().Term();
+
+				pawn->NetworkStateChanged();
+				pVictim->GetPlayerPawn()->NetworkStateChanged();
+			}
+		}
+		return -1.0f;
+	});
+
 	// Ignore Ts/zombie kills and ignore CT teamkilling or suicide
-	if (!pAttacker || !pVictim || pAttacker->m_iTeamNum != CS_TEAM_CT || pAttacker->m_iTeamNum == pVictim->m_iTeamNum)
+	if (pAttacker->m_iTeamNum != CS_TEAM_CT || pAttacker->m_iTeamNum == pVictim->m_iTeamNum)
 		return;
 
 	ZEPlayer* pPlayer = pAttacker->GetZEPlayer();
@@ -261,11 +288,6 @@ GAME_EVENT_F(player_death)
 		return;
 
 	pPlayer->SetTotalKills(pPlayer->GetTotalKills() + 1);
-
-	if(!pVictimPlayer)
-		return;
-
-	pVictimPlayer->SetHideStatus(false);
 }
 
 CConVar<bool> g_cvarFullAllTalk("cs2f_full_alltalk", FCVAR_NONE, "Whether to enforce sv_full_alltalk 1", false);
