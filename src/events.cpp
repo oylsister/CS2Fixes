@@ -193,6 +193,7 @@ GAME_EVENT_F(player_spawn)
 		return -1.0f;
 	});
 
+	/*
 	// Hide status reset
 	new CTimer(1.7f, false, false, [hController]() {
 		CCSPlayerController* pController = hController.Get();
@@ -208,6 +209,7 @@ GAME_EVENT_F(player_spawn)
 
 		return -1.0f;
 	});
+	*/
 }
 
 CConVar<bool> g_cvarEnableTopDefender("cs2f_topdefender_enable", FCVAR_NONE, "Whether to use TopDefender", false);
@@ -253,29 +255,32 @@ GAME_EVENT_F(player_death)
 	if(!pAttacker || !pVictim)
 		return;
 
-	pVictim->GetServerSideClient()->ForceFullUpdate();
+	if (g_cvarEnableHide.Get())
+	{
+		pVictim->GetServerSideClient()->ForceFullUpdate();
 
-	//pVictimPlayer->SetHideStatus(false);
-	new CTimer(0.7f, false, false, [pVictim]() {
+		//pVictimPlayer->SetHideStatus(false);
+		new CTimer(0.7f, false, false, [pVictim]() {
 
-		if(!pVictim)
-			return -1.0f;
+			if(!pVictim)
+				return -1.0f;
 
-		auto pawn = pVictim->GetPawn();
-		if(pawn)
-		{
-			auto pObserver = pawn->m_pObserverServices();
-
-			if(pObserver)
+			auto pawn = pVictim->GetPawn();
+			if(pawn)
 			{
-				pObserver->m_hObserverTarget().Term();
+				auto pObserver = pawn->m_pObserverServices();
 
-				pawn->NetworkStateChanged();
-				pVictim->GetPlayerPawn()->NetworkStateChanged();
+				if(pObserver)
+				{
+					pObserver->m_hObserverTarget().Term();
+
+					pawn->NetworkStateChanged();
+					pVictim->GetPlayerPawn()->NetworkStateChanged();
+				}
 			}
-		}
-		return -1.0f;
-	});
+			return -1.0f;
+		});
+	}
 
 	// Ignore Ts/zombie kills and ignore CT teamkilling or suicide
 	if (pAttacker->m_iTeamNum != CS_TEAM_CT || pAttacker->m_iTeamNum == pVictim->m_iTeamNum)
