@@ -179,7 +179,7 @@ GS_EVENT_MEMBER(CGameSystem, ServerPreEntityThink)
 GS_EVENT_MEMBER(CGameSystem, ServerPostEntityThink)
 {
 	VPROF_BUDGET("CGameSystem::ServerPostEntityThink", "CS2FixesPerFrame")
-	g_playerManager->UpdatePlayerStates();
+	//g_playerManager->UpdatePlayerStates();
 }
 
 GS_EVENT_MEMBER(CGameSystem, GameShutdown)
