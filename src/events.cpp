@@ -260,6 +260,7 @@ GAME_EVENT_F(player_death)
 		ZEPlayer* pVictimPlayer = pVictim->GetZEPlayer();
 		pVictimPlayer->SetHideStatus(false);
 		
+		/*
 		new CTimer(0.7f, false, false, [pVictim]() {
 
 			if(!pVictim)
@@ -280,6 +281,7 @@ GAME_EVENT_F(player_death)
 			}
 			return -1.0f;
 		});
+		*/
 	}
 
 	// Ignore Ts/zombie kills and ignore CT teamkilling or suicide
