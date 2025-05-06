@@ -254,7 +254,7 @@ void RegisterWeaponCommands()
 	}
 }
 
-void ParseChatCommand(const char* pMessage, CCSPlayerController* pController)
+bool ParseChatCommand(const char* pMessage, CCSPlayerController* pController)
 {
 	if (!pController || !pController->IsConnected())
 		return;
@@ -271,7 +271,12 @@ void ParseChatCommand(const char* pMessage, CCSPlayerController* pController)
 	uint16 index = g_CommandList.Find(hash_32_fnv1a_const(name.c_str()));
 
 	if (g_CommandList.IsValidIndex(index))
+	{
 		(*g_CommandList[index])(args, pController);
+		return true;
+	}
+
+	return false;
 }
 
 bool CChatCommand::CheckCommandAccess(CCSPlayerController* pPlayer, uint64 flags)

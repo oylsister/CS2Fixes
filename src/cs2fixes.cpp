@@ -530,6 +530,7 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 		bool bAdminChat = bTeamSay && *args[1] == '@';
 		bool bCommand = *args[1] == '!';
 
+		/*
 		// Chat messages should generate events regardless
 		if (pController)
 		{
@@ -544,6 +545,7 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 				g_gameEventManager->FireEvent(pEvent, true);
 			}
 		}
+		*/
 
 		if (!bGagged && !bFlooding)
 		{
@@ -588,10 +590,12 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 			if ((bGagged || bFlooding) && pszMessage[V_strlen(pszMessage) - 1] == '"')
 				pszMessage[V_strlen(pszMessage) - 1] = '\0';
 
-			ParseChatCommand(pszMessage, pController);
-		}
+			auto existed = ParseChatCommand(pszMessage, pController);
 
-		RETURN_META(MRES_SUPERCEDE);
+			if(existed)
+				RETURN_META(MRES_SUPERCEDE);
+		}
+		RETURN_META(MRES_IGNORED);
 	}
 
 	RETURN_META(MRES_IGNORED);
