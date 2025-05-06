@@ -937,6 +937,9 @@ void CS2Fixes::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount
 
 		if(g_cvarEnableHide.Get())
 		{
+			if(pSelfController->IsBot() || pSelfController->m_bIsHLTV)
+				continue;
+
 			CCSPlayerPawn* pMainPawn = pSelfController->GetPlayerPawn();
 			if(!pMainPawn)
 				continue;
@@ -968,7 +971,7 @@ void CS2Fixes::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount
 		{
 			CCSPlayerController* pController = CCSPlayerController::FromSlot(j);
 			// Always transmit to themselves
-			if (!pController || pController->m_bIsHLTV || j == iPlayerSlot)
+			if (!pController || pController->m_bIsHLTV || j == iPlayerSlot || pController->IsBot())
 				continue;
 
 			/*
