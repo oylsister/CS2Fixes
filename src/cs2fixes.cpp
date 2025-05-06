@@ -593,7 +593,22 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 			auto existed = ParseChatCommand(pszMessage, pController);
 
 			if(existed)
+			{
+				if (pController)
+				{
+					IGameEvent* pEvent = g_gameEventManager->CreateEvent("player_chat");
+
+					if (pEvent)
+					{
+						pEvent->SetBool("teamonly", bTeamSay);
+						pEvent->SetInt("userid", pController->GetPlayerSlot());
+						pEvent->SetString("text", args[1]);
+
+						g_gameEventManager->FireEvent(pEvent, true);
+					}
+				}
 				RETURN_META(MRES_SUPERCEDE);
+			}
 		}
 		RETURN_META(MRES_IGNORED);
 	}
