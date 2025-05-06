@@ -257,7 +257,7 @@ void RegisterWeaponCommands()
 bool ParseChatCommand(const char* pMessage, CCSPlayerController* pController)
 {
 	if (!pController || !pController->IsConnected())
-		return;
+		return false;
 
 	VPROF("ParseChatCommand");
 
