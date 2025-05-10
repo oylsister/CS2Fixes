@@ -43,6 +43,7 @@ CConVar<bool> g_cvarEnableButtonWatch("cs2f_enable_button_watch", FCVAR_NONE, "I
 											  mapIOFunctions["buttonwatch"] = ButtonWatch;
 									  });
 
+/*
 CON_COMMAND_CHAT_FLAGS(bw, "- Toggle button watch display", ADMFLAG_GENERIC)
 {
 	if (!IsButtonWatchEnabled())
@@ -82,6 +83,7 @@ CON_COMMAND_CHAT_FLAGS(bw, "- Toggle button watch display", ADMFLAG_GENERIC)
 			break;
 	}
 }
+*/
 
 bool IsButtonWatchEnabled()
 {
