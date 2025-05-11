@@ -358,7 +358,7 @@ bool CS2Fixes::Load(PluginId id, ISmmAPI* ismm, char* error, size_t maxlen, bool
 	g_pPanoramaVoteHandler = new CPanoramaVoteHandler();
 	g_pEWHandler = new CEWHandler();
 
-	RegisterWeaponCommands();
+	// RegisterWeaponCommands();
 
 	// Check hide distance
 	new CTimer(0.5f, true, true, []() {
