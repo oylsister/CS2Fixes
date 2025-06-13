@@ -17,28 +17,13 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "cbasemodelentity.h"
+#include "ccsplayerpawn.h"
 
-#include "../schema.h"
-#include "cbaseentity.h"
-
-class CLogicCase : public CBaseEntity
+void CBaseModelEntity::SetModel(const char* szModel)
 {
-public:
-	DECLARE_SCHEMA_CLASS(CLogicCase)
+	addresses::CBaseModelEntity_SetModel(this, szModel);
 
-	SCHEMA_FIELD_POINTER(CUtlSymbolLarge, m_nCase)
-};
-
-class CGameUI : public CLogicCase
-{
-public:
-	static constexpr int SF_GAMEUI_FREEZE_PLAYER = 32;
-	static constexpr int SF_GAMEUI_JUMP_DEACTIVATE = 256;
-
-	// TODO Hide Weapon requires more RE
-	static constexpr int SF_GAMEUI_HIDE_WEAPON = 64;
-
-	// TODO subtick problem
-	static constexpr int SF_GAMEUI_USE_DEACTIVATE = 128;
-};
+	if (IsPawn())
+		((CCSPlayerPawn*)this)->FixPlayerModelAnimations();
+}

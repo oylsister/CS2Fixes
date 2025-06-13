@@ -17,28 +17,28 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "ccsplayerpawn.h"
+#include "../ctimer.h"
 
-#include "../schema.h"
-#include "cbaseentity.h"
-
-class CLogicCase : public CBaseEntity
+// Silly workaround for an animation bug that's been happening since 2024-11-06 CS2 update
+// Clients need to see the new playermodel with zero velocity for at least one tick to properly render animations
+void CCSPlayerPawn::FixPlayerModelAnimations()
 {
-public:
-	DECLARE_SCHEMA_CLASS(CLogicCase)
+	CHandle<CCSPlayerPawn> hPawn = GetHandle();
+	Vector originalVelocity = m_vecAbsVelocity;
 
-	SCHEMA_FIELD_POINTER(CUtlSymbolLarge, m_nCase)
-};
+	Teleport(nullptr, nullptr, &vec3_origin);
+	SetMoveType(MOVETYPE_OBSOLETE);
 
-class CGameUI : public CLogicCase
-{
-public:
-	static constexpr int SF_GAMEUI_FREEZE_PLAYER = 32;
-	static constexpr int SF_GAMEUI_JUMP_DEACTIVATE = 256;
+	new CTimer(0.01f, false, false, [hPawn, originalVelocity]() {
+		CCSPlayerPawn* pPawn = hPawn.Get();
 
-	// TODO Hide Weapon requires more RE
-	static constexpr int SF_GAMEUI_HIDE_WEAPON = 64;
+		if (!pPawn || !pPawn->IsAlive())
+			return -1.0f;
 
-	// TODO subtick problem
-	static constexpr int SF_GAMEUI_USE_DEACTIVATE = 128;
-};
+		pPawn->SetMoveType(MOVETYPE_WALK);
+		pPawn->Teleport(nullptr, nullptr, &originalVelocity);
+
+		return -1.0f;
+	});
+}

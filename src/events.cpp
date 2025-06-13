@@ -198,9 +198,6 @@ CConVar<bool> g_cvarEnableTopDefender("cs2f_topdefender_enable", FCVAR_NONE, "Wh
 
 GAME_EVENT_F(player_hurt)
 {
-	if (g_cvarEnableZR.Get())
-		ZR_OnPlayerHurt(pEvent);
-
 	if (!g_cvarEnableTopDefender.Get())
 		return;
 
@@ -280,9 +277,6 @@ GAME_EVENT_F(round_start)
 
 GAME_EVENT_F(round_end)
 {
-	if (g_cvarVoteManagerEnable.Get())
-		g_pVoteManager->OnRoundEnd();
-
 	if (!g_cvarEnableTopDefender.Get() || !GetGlobals())
 		return;
 

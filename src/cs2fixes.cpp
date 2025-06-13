@@ -710,6 +710,17 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 		if (g_cvarEnableNoShake.Get())
 			*(uint64*)clients &= ~g_playerManager->GetNoShakeMask();
 	}
+	else if (g_cvarEnableStopSound.Get() && info->m_MessageId == GE_SosStartSoundEvent)
+	{
+		auto msg = const_cast<CNetMessage*>(pData)->ToPB<CMsgSosStartSoundEvent>();
+
+		if (msg->soundevent_hash() == MurmurHash2LowerCase("Weapon_Revolver.Prepare", 0x53524332))
+		{
+			// Filter out people using stop/silence sound from hearing R8 windup
+			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+			*(uint64*)clients &= ~g_playerManager->GetSilenceSoundMask();
+		}
+	}
 }
 
 void CS2Fixes::AllPluginsLoaded()
@@ -993,6 +1004,9 @@ void CS2Fixes::Hook_GoToIntermission(bool bAbortedMatch)
 {
 	if (!g_pMapVoteSystem->IsIntermissionAllowed())
 		RETURN_META(MRES_SUPERCEDE);
+
+	if (g_cvarVoteManagerEnable.Get())
+		g_pVoteManager->OnIntermission();
 
 	RETURN_META(MRES_IGNORED);
 }
