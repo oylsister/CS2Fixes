@@ -169,7 +169,7 @@ GAME_EVENT_F(player_spawn)
 		if (!g_cvarNoblock.Get() || !pPawn || !pPawn->IsAlive())
 			return -1.0f;
 
-		pPawn->SetCollisionGroup(COLLISION_GROUP_DEBRIS);
+		// pPawn->SetCollisionGroup(COLLISION_GROUP_DEBRIS);
 
 		return -1.0f;
 	});
@@ -204,7 +204,7 @@ GAME_EVENT_F(player_spawn)
 		if (pPawn && pPawn->IsAlive())
 		{
 			pPawn->m_vecAbsVelocity = Vector(0, 0, 0);
-			pPawn->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+			// pPawn->SetCollisionGroup(COLLISION_GROUP_PLAYER);
 		}
 
 		ZEPlayer* pPlayer = pController->GetZEPlayer();
