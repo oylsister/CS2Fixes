@@ -532,10 +532,10 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 		bool bGagged = pController && pController->GetZEPlayer()->IsGagged();
 		bool bFlooding = pController && pController->GetZEPlayer()->IsFlooding();
 		bool bAdminChat = bTeamSay && *args[1] == '@';
-		bool bSilent = *args[1] == '/' || bAdminChat;
-		bool bCommand = *args[1] == '!' || *args[1] == '/';
+		bool bCommand = *args[1] == '!';
 
 		// Chat messages should generate events regardless
+		/*
 		if (pController)
 		{
 			IGameEvent* pEvent = g_gameEventManager->CreateEvent("player_chat");
@@ -549,8 +549,9 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 				g_gameEventManager->FireEvent(pEvent, true);
 			}
 		}
+		*/
 
-		if (!bGagged && !bSilent && !bFlooding)
+		if (!bGagged && !bFlooding)
 		{
 			SH_CALL(g_pCVar, &ICvar::DispatchConCommand)
 			(cmdHandle, ctx, args);
@@ -590,15 +591,32 @@ void CS2Fixes::Hook_DispatchConCommand(ConCommandRef cmdHandle, const CCommandCo
 				pszMessage += 1;
 
 			// Host_Say at some point removes the trailing " for whatever reason, so we only remove if it was never called
-			if ((bGagged || bSilent || bFlooding) && pszMessage[V_strlen(pszMessage) - 1] == '"')
+			if ((bGagged || bFlooding) && pszMessage[V_strlen(pszMessage) - 1] == '"')
 				pszMessage[V_strlen(pszMessage) - 1] = '\0';
 
-			ParseChatCommand(pszMessage, pController);
+			auto existed = ParseChatCommand(pszMessage, pController);
+
+			if(existed)
+			{
+				if (pController)
+				{
+					IGameEvent* pEvent = g_gameEventManager->CreateEvent("player_chat");
+
+					if (pEvent)
+					{
+						pEvent->SetBool("teamonly", bTeamSay);
+						pEvent->SetInt("userid", pController->GetPlayerSlot());
+						pEvent->SetString("text", args[1]);
+
+						g_gameEventManager->FireEvent(pEvent, true);
+					}
+				}
+				RETURN_META(MRES_SUPERCEDE);
+			}
 		}
-
-		RETURN_META(MRES_SUPERCEDE);
+		RETURN_META(MRES_IGNORED);
 	}
-
+	
 	RETURN_META(MRES_IGNORED);
 }
 
