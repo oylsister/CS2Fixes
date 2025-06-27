@@ -1236,8 +1236,8 @@ CON_COMMAND_CHAT_FLAGS(setteam, "<name> <team (0-3)> - Set a player's team", ADM
 	if (iNumClients > 1)
 		PrintMultiAdminAction(nType, pszCommandPlayerName, "moved", szAction);
 }
-*/
 #endif
+*/
 
 void CAdmin::SetFlags(uint64 iFlags)
 {
