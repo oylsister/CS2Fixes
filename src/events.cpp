@@ -215,6 +215,7 @@ GAME_EVENT_F(player_hurt)
 
 	pPlayer->SetTotalDamage(pPlayer->GetTotalDamage() + pEvent->GetInt("dmg_health"));
 	pPlayer->SetTotalHits(pPlayer->GetTotalHits() + 1);
+	pPlayer->ShowMarker();
 }
 
 GAME_EVENT_F(player_death)

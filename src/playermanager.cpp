@@ -699,14 +699,14 @@ void ZEPlayer::CreateHitmarkerHud()
 	if (!pPawn)
 		return;
 
-	CPointWorldText* particle = GetHitmarkerHud();
+	CParticleSystem* particle = GetHitmarkerHud();
 	if (particle)
 	{
 		particle->Remove();
 		particle = nullptr;
 	}
 
-	particle = CreateEntityByName<CPointWorldText>("point_worldtext");
+	particle = CreateEntityByName<CParticleSystem>("info_particle_system");
 	particle->m_iszEffectName(g_cvarHitmarkerParticle.Get().String());
 	particle->DispatchSpawn();
 
