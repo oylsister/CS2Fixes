@@ -153,6 +153,7 @@ CON_COMMAND_F(c_reload_infractions, "- Reload infractions file", FCVAR_SPONLY | 
 	Message("Infractions reloaded\n");
 }
 
+/*
 CON_COMMAND_CHAT_FLAGS(ban, "<name> <minutes|0 (permament)> - Ban a player", ADMFLAG_BAN)
 {
 	ParseInfraction(args, player, true, CInfractionBase::EInfractionType::Ban);
@@ -201,6 +202,7 @@ CON_COMMAND_CHAT_FLAGS(ungag, "<name> - Ungag a player", ADMFLAG_CHAT)
 {
 	ParseInfraction(args, player, false, CInfractionBase::EInfractionType::Gag);
 }
+*/
 
 CON_COMMAND_CHAT_FLAGS(eban, "<name> <duration|0 (permanent)> - Ban a player from picking up items", ADMFLAG_BAN)
 {
@@ -218,6 +220,7 @@ CON_COMMAND_CHAT_FLAGS(eunban, "<name> - Unban a player from picking up items", 
 	ParseInfraction(args, player, false, CInfractionBase::EInfractionType::Eban);
 }
 
+/*
 CON_COMMAND_CHAT_FLAGS(kick, "<name> - Kick a player", ADMFLAG_KICK)
 {
 	if (args.ArgC() < 2)
@@ -432,6 +435,7 @@ CON_COMMAND_CHAT_FLAGS(reload_discord_bots, "- Reload discord bot config", ADMFL
 	g_pDiscordBotManager->LoadDiscordBotsConfig();
 	Message("Discord bot config reloaded\n");
 }
+*/
 
 CON_COMMAND_CHAT_FLAGS(entfire, "<name> <input> [parameter] - Fire outputs at entities", ADMFLAG_RCON)
 {
@@ -552,6 +556,7 @@ CON_COMMAND_CHAT_FLAGS(entfirecontroller, "<name> <input> [parameter] - Fire out
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Input successful on %i player controllers.", iFoundEnts);
 }
 
+/*
 CON_COMMAND_CHAT_FLAGS(hsay, "<message> - Say something as a hud hint", ADMFLAG_CHAT)
 {
 	if (args.ArgC() < 2)
@@ -665,6 +670,7 @@ CON_COMMAND_CHAT_FLAGS(pm, "<name> <message> - Private message a player. This wi
 	ClientPrint(pTarget, HUD_PRINTTALK, "\x0A[PM]\x0C %s\1: \x0B%s", pszName, strMessage.c_str());
 	Message("[PM to %s] %s: %s\n", pTarget->GetPlayerName(), pszName, strMessage.c_str());
 }
+*/
 
 size_t CountCharacters(const std::string& str)
 {
@@ -678,6 +684,7 @@ size_t CountCharacters(const std::string& str)
 	return count;
 }
 
+/*
 CON_COMMAND_CHAT_FLAGS(who, "- List the flags of all online players", ADMFLAG_GENERIC)
 {
 	if (!GetGlobals())
@@ -1229,6 +1236,7 @@ CON_COMMAND_CHAT_FLAGS(setteam, "<name> <team (0-3)> - Set a player's team", ADM
 	if (iNumClients > 1)
 		PrintMultiAdminAction(nType, pszCommandPlayerName, "moved", szAction);
 }
+*/
 #endif
 
 void CAdmin::SetFlags(uint64 iFlags)
