@@ -262,6 +262,7 @@ public:
 	void SetEntwatchHudColor(Color colorHud);
 	void SetEntwatchHudPos(float x, float y);
 	void SetEntwatchHudSize(float flSize);
+	void SetHitmarkerHud(CParticleSystem* particle) { m_hHitmarker.Set(particle); }
 
 	uint64 GetAdminFlags() { return m_iAdminFlags; }
 	int GetAdminImmunity() { return m_iAdminImmunity; }
@@ -311,6 +312,7 @@ public:
 	float GetEntwatchHudX() { return m_flEntwatchHudX; }
 	float GetEntwatchHudY() { return m_flEntwatchHudY; }
 	float GetEntwatchHudSize() { return m_flEntwatchHudSize; }
+	CParticleSystem* GetHitmarkerHud() { return m_hHitmarker.Get(); }
 
 	void OnSpawn();
 	void OnAuthenticated();
@@ -326,6 +328,8 @@ public:
 	void EndGlow();
 	void SetSteamIdAttribute();
 	void CreateEntwatchHud();
+	void CreateHitmarkerHud();
+	void ShowMarker();
 
 private:
 	bool m_bAuthenticated;
@@ -382,6 +386,7 @@ private:
 	float m_flEntwatchHudX;
 	float m_flEntwatchHudY;
 	float m_flEntwatchHudSize;
+	CHandle<CParticleSystem> m_hHitmarker;
 };
 
 class CPlayerManager
