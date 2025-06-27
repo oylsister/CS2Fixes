@@ -216,6 +216,22 @@ GAME_EVENT_F(player_spawn)
 
 		return -1.0f;
 	});
+
+	// Hide status reset
+	new CTimer(1.7f, false, false, [hController]() {
+		CCSPlayerController* pController = hController.Get();
+
+		if (!pController)
+			return -1.0f;
+
+		ZEPlayer* pPlayer = pController->GetZEPlayer();
+
+		// reset hide status on spawn
+		if (pPlayer)
+			pPlayer->SetHideStatus(true);
+
+		return -1.0f;
+	});
 }
 
 CConVar<bool> g_cvarEnableTopDefender("cs2f_topdefender_enable", FCVAR_NONE, "Whether to use TopDefender", false);
@@ -256,8 +272,19 @@ GAME_EVENT_F(player_death)
 	CCSPlayerController* pAttacker = (CCSPlayerController*)pEvent->GetPlayerController("attacker");
 	CCSPlayerController* pVictim = (CCSPlayerController*)pEvent->GetPlayerController("userid");
 
+	if(!pAttacker || !pVictim)
+		return;
+
+	if (g_cvarEnableHide.Get())
+	{
+		pVictim->GetServerSideClient()->ForceFullUpdate();
+
+		ZEPlayer* pVictimPlayer = pVictim->GetZEPlayer();
+		pVictimPlayer->SetHideStatus(false);
+	}
+
 	// Ignore Ts/zombie kills and ignore CT teamkilling or suicide
-	if (!pAttacker || !pVictim || pAttacker->m_iTeamNum != CS_TEAM_CT || pAttacker->m_iTeamNum == pVictim->m_iTeamNum)
+	if (pAttacker->m_iTeamNum != CS_TEAM_CT || pAttacker->m_iTeamNum == pVictim->m_iTeamNum)
 		return;
 
 	ZEPlayer* pPlayer = pAttacker->GetZEPlayer();

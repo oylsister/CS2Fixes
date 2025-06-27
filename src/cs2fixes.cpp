@@ -1002,6 +1002,33 @@ void CS2Fixes::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount
 		if (!pSelfController || !pSelfController->IsConnected())
 			continue;
 
+		if(g_cvarEnableHide.Get())
+		{
+			if(pSelfController->IsBot() || pSelfController->m_bIsHLTV)
+				continue;
+
+			CCSPlayerPawn* pMainPawn = pSelfController->GetPlayerPawn();
+			if(!pMainPawn)
+				continue;
+
+			if (!pMainPawn->IsAlive())
+			{
+				auto pawn = pSelfController->GetPawn();
+
+				if(pawn)
+				{
+					auto observer = pawn->m_pObserverServices();
+					if(observer)
+					{
+						observer->m_hObserverTarget().Term();
+
+						pawn->NetworkStateChanged();
+						pMainPawn->NetworkStateChanged();
+					}
+				}
+			}
+		}
+
 		auto pSelfZEPlayer = g_playerManager->GetPlayer(iPlayerSlot);
 
 		if (!pSelfZEPlayer)
