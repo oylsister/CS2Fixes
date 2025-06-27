@@ -192,6 +192,30 @@ GAME_EVENT_F(player_spawn)
 
 		return -1.0f;
 	});
+
+	new CTimer(1.0f, false, false, [hController]() {
+		CCSPlayerController* pController = hController.Get();
+
+		if (!pController)
+			return -1.0f;
+
+		CBasePlayerPawn* pPawn = pController->GetPawn();
+
+		if (pPawn && pPawn->IsAlive())
+		{
+			pPawn->m_vecAbsVelocity = Vector(0, 0, 0);
+			pPawn->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+		}
+
+		ZEPlayer* pPlayer = pController->GetZEPlayer();
+
+		if(pPlayer)
+		{
+			pPlayer->CreateHitmarkerHud();
+		}
+
+		return -1.0f;
+	});
 }
 
 CConVar<bool> g_cvarEnableTopDefender("cs2f_topdefender_enable", FCVAR_NONE, "Whether to use TopDefender", false);
