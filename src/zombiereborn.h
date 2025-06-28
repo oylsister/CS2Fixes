@@ -28,7 +28,7 @@
 
 using ordered_json = nlohmann::ordered_json;
 
-#define ZR_PREFIX " \4[Zombie:Reborn]\1 "
+#define ZR_PREFIX " \4[Z:Rev]\1 "
 #define HUMAN_CLASS_KEY_NAME "zr_human_class"
 #define ZOMBIE_CLASS_KEY_NAME "zr_zombie_class"
 
@@ -136,7 +136,7 @@ struct ZRClass
 struct ZRHumanClass : ZRClass
 {
 	ZRHumanClass(std::shared_ptr<ZRHumanClass> pClass) :
-		ZRClass(pClass, CS_TEAM_CT) {};
+		ZRClass(pClass, CS_TEAM_CT){};
 	ZRHumanClass(ordered_json jsonKeys, std::string szClassname);
 };
 
@@ -149,7 +149,7 @@ struct ZRZombieClass : ZRClass
 		ZRClass(pClass, CS_TEAM_T),
 		iHealthRegenCount(pClass->iHealthRegenCount),
 		flHealthRegenInterval(pClass->flHealthRegenInterval),
-		flKnockback(pClass->flKnockback) {};
+		flKnockback(pClass->flKnockback){};
 	ZRZombieClass(ordered_json jsonKeys, std::string szClassname);
 	void PrintInfo()
 	{
@@ -226,7 +226,7 @@ class CZRRegenTimer : public CTimerBase
 {
 public:
 	CZRRegenTimer(float flRegenInterval, int iRegenAmount, CHandle<CCSPlayerPawn> hPawnHandle) :
-		CTimerBase(flRegenInterval, false, false), m_iRegenAmount(iRegenAmount), m_hPawnHandle(hPawnHandle) {};
+		CTimerBase(flRegenInterval, false, false), m_iRegenAmount(iRegenAmount), m_hPawnHandle(hPawnHandle){};
 
 	bool Execute();
 	static void StartRegen(float flRegenInterval, int iRegenAmount, CCSPlayerController* pController);

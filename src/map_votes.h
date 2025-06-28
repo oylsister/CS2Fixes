@@ -129,7 +129,7 @@ public:
 	void FinishVote();
 	bool RegisterPlayerVote(CPlayerSlot iPlayerSlot, int iVoteOption);
 	std::vector<int> GetMapIndexesFromSubstring(const char* sMapSubstring);
-	uint64 HandlePlayerMapLookup(CCSPlayerController* pController, const char* sMapSubstring, bool bAllowWorkshopID = false);
+	uint64 HandlePlayerMapLookup(CCSPlayerController* pController, const char* sMapSubstring, bool bAdmin = false);
 	int GetMapIndexFromString(const char* pszMapString);
 	std::shared_ptr<CGroup> GetGroupFromString(const char* pszName);
 	std::shared_ptr<CCooldown> GetMapCooldown(const char* pszMapName);
@@ -175,6 +175,7 @@ public:
 	std::string StringToLower(std::string sValue);
 	void SetDisabledCooldowns(bool bValue) { g_bDisableCooldowns = bValue; } // Can be used by custom fork features, e.g. an auto-restart
 	void ProcessGroupCooldowns();
+	void ReloadCurrentMap();
 
 private:
 	int WinningMapIndex();

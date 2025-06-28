@@ -97,7 +97,7 @@ private:
 };
 
 void RegisterWeaponCommands();
-void ParseChatCommand(const char*, CCSPlayerController*);
+bool ParseChatCommand(const char*, CCSPlayerController*);
 
 #define CON_COMMAND_CHAT_FLAGS(name, description, flags)                                                                               \
 	void name##_callback(const CCommand& args, CCSPlayerController* player);                                                           \

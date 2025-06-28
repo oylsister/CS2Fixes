@@ -52,6 +52,7 @@ extern IGameEventSystem* g_gameEventSystem;
 extern CGameEntitySystem* g_pEntitySystem;
 extern IVEngineServer2* g_pEngineServer2;
 extern ISteamHTTP* g_http;
+extern CConVar<CUtlString> g_cvarFlashLightAttachment;
 
 CConVar<bool> g_cvarEnableCommands("cs2f_commands_enable", FCVAR_NONE, "Whether to enable chat commands", false);
 CConVar<bool> g_cvarEnableAdminCommands("cs2f_admin_commands_enable", FCVAR_NONE, "Whether to enable admin chat commands", false);
@@ -254,10 +255,10 @@ void RegisterWeaponCommands()
 	}
 }
 
-void ParseChatCommand(const char* pMessage, CCSPlayerController* pController)
+bool ParseChatCommand(const char* pMessage, CCSPlayerController* pController)
 {
 	if (!pController || !pController->IsConnected())
-		return;
+		return false;
 
 	VPROF("ParseChatCommand");
 
@@ -271,7 +272,12 @@ void ParseChatCommand(const char* pMessage, CCSPlayerController* pController)
 	uint16 index = g_CommandList.Find(hash_32_fnv1a_const(name.c_str()));
 
 	if (g_CommandList.IsValidIndex(index))
+	{
 		(*g_CommandList[index])(args, pController);
+		return true;
+	}
+
+	return false;
 }
 
 bool CChatCommand::CheckCommandAccess(CCSPlayerController* pPlayer, uint64 flags)
@@ -800,10 +806,8 @@ CON_COMMAND_CHAT(fl, "- Flashlight")
 
 	pLight->DispatchSpawn(pKeyValues);
 
-	variant_t val("!player");
-	pLight->AcceptInput("SetParent", &val);
-	variant_t val2("clip_limit");
-	pLight->AcceptInput("SetParentAttachmentMaintainOffset", &val2);
+	pLight->SetParent(pPawn);
+	pLight->AcceptInput("SetParentAttachmentMaintainOffset", g_cvarFlashLightAttachment.Get().String());
 }
 
 CON_COMMAND_CHAT(say, "<message> - Say something using console")

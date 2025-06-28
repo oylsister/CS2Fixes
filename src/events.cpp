@@ -169,7 +169,7 @@ GAME_EVENT_F(player_spawn)
 		if (!g_cvarNoblock.Get() || !pPawn || !pPawn->IsAlive())
 			return -1.0f;
 
-		pPawn->SetCollisionGroup(COLLISION_GROUP_DEBRIS);
+		// pPawn->SetCollisionGroup(COLLISION_GROUP_DEBRIS);
 
 		return -1.0f;
 	});
@@ -189,6 +189,46 @@ GAME_EVENT_F(player_spawn)
 			// We've seen this several times across different maps at this point
 			pPawn->m_vecAbsVelocity = Vector(0, 0, 0);
 		}
+
+		return -1.0f;
+	});
+
+	new CTimer(1.0f, false, false, [hController]() {
+		CCSPlayerController* pController = hController.Get();
+
+		if (!pController)
+			return -1.0f;
+
+		CBasePlayerPawn* pPawn = pController->GetPawn();
+
+		if (pPawn && pPawn->IsAlive())
+		{
+			pPawn->m_vecAbsVelocity = Vector(0, 0, 0);
+			// pPawn->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+		}
+
+		ZEPlayer* pPlayer = pController->GetZEPlayer();
+
+		if(pPlayer)
+		{
+			pPlayer->CreateHitmarkerHud();
+		}
+
+		return -1.0f;
+	});
+
+	// Hide status reset
+	new CTimer(1.7f, false, false, [hController]() {
+		CCSPlayerController* pController = hController.Get();
+
+		if (!pController)
+			return -1.0f;
+
+		ZEPlayer* pPlayer = pController->GetZEPlayer();
+
+		// reset hide status on spawn
+		if (pPlayer)
+			pPlayer->SetHideStatus(true);
 
 		return -1.0f;
 	});
@@ -215,6 +255,7 @@ GAME_EVENT_F(player_hurt)
 
 	pPlayer->SetTotalDamage(pPlayer->GetTotalDamage() + pEvent->GetInt("dmg_health"));
 	pPlayer->SetTotalHits(pPlayer->GetTotalHits() + 1);
+	pPlayer->ShowMarker();
 }
 
 GAME_EVENT_F(player_death)
@@ -231,8 +272,19 @@ GAME_EVENT_F(player_death)
 	CCSPlayerController* pAttacker = (CCSPlayerController*)pEvent->GetPlayerController("attacker");
 	CCSPlayerController* pVictim = (CCSPlayerController*)pEvent->GetPlayerController("userid");
 
+	if(!pAttacker || !pVictim)
+		return;
+
+	if (g_cvarEnableHide.Get())
+	{
+		pVictim->GetServerSideClient()->ForceFullUpdate();
+
+		ZEPlayer* pVictimPlayer = pVictim->GetZEPlayer();
+		pVictimPlayer->SetHideStatus(false);
+	}
+
 	// Ignore Ts/zombie kills and ignore CT teamkilling or suicide
-	if (!pAttacker || !pVictim || pAttacker->m_iTeamNum != CS_TEAM_CT || pAttacker->m_iTeamNum == pVictim->m_iTeamNum)
+	if (pAttacker->m_iTeamNum != CS_TEAM_CT || pAttacker->m_iTeamNum == pVictim->m_iTeamNum)
 		return;
 
 	ZEPlayer* pPlayer = pAttacker->GetZEPlayer();

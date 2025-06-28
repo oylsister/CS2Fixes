@@ -70,14 +70,8 @@ CON_COMMAND_CHAT_FLAGS(reload_map_list, "- Reload map list, also reloads current
 	CALL_VIRTUAL(void, g_GameConfig->GetOffset("IGameTypes_CreateWorkshopMapGroup"), g_pGameTypes, "workshop");
 
 	// Updating the mapgroup requires reloading the map for everything to load properly
-	char sChangeMapCmd[128] = "";
+	g_pMapVoteSystem->ReloadCurrentMap();
 
-	if (g_pMapVoteSystem->GetCurrentWorkshopMap() != 0)
-		V_snprintf(sChangeMapCmd, sizeof(sChangeMapCmd), "host_workshop_map %llu", g_pMapVoteSystem->GetCurrentWorkshopMap());
-	else
-		V_snprintf(sChangeMapCmd, sizeof(sChangeMapCmd), "map %s", g_pMapVoteSystem->GetCurrentMapName());
-
-	g_pEngineServer2->ServerCommand(sChangeMapCmd);
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Map list reloaded!");
 }
 
@@ -273,7 +267,7 @@ void CMapVoteSystem::OnLevelInit(const char* pMapName)
 
 void CMapVoteSystem::StartVote()
 {
-	if (!g_pGameRules)
+	if (!g_cvarVoteManagerEnable.Get() || !g_pGameRules)
 		return;
 
 	m_bIsVoteOngoing = true;
@@ -287,15 +281,7 @@ void CMapVoteSystem::StartVote()
 	m_iVoteSize = std::min((int)vecPossibleMaps.size(), g_cvarVoteMaxMaps.Get());
 	bool bAbort = false;
 
-	static ConVarRefAbstract mp_endmatch_votenextmap("mp_endmatch_votenextmap");
-	bool bVoteEnabled = mp_endmatch_votenextmap.GetBool();
-
-	if (!bVoteEnabled)
-	{
-		m_bIsVoteOngoing = false;
-		bAbort = true;
-	}
-	else if (m_iForcedNextMap != -1)
+	if (m_iForcedNextMap != -1)
 	{
 		new CTimer(6.0f, false, true, []() {
 			g_pMapVoteSystem->FinishVote();
@@ -308,9 +294,15 @@ void CMapVoteSystem::StartVote()
 	{
 		ClientPrintAll(HUD_PRINTTALK, CHAT_PREFIX "Not enough maps available for map vote, aborting! Please have an admin loosen map limits.");
 		Message("Not enough maps available for map vote, aborting!\n");
-		g_pEngineServer2->ServerCommand("mp_match_end_changelevel 1"); // Allow game to auto-switch map again
 		m_bIsVoteOngoing = false;
 		bAbort = true;
+
+		// Reload the current map as a fallback
+		// Previously we fell back to game behaviour which could choose a random map in mapgroup, but a crash bug with default map changes was introduced in 2025-05-07 CS2 update
+		new CTimer(6.0f, false, true, []() {
+			g_pMapVoteSystem->ReloadCurrentMap();
+			return -1.0f;
+		});
 	}
 
 	if (bAbort)
@@ -324,10 +316,6 @@ void CMapVoteSystem::StartVote()
 
 		return;
 	}
-
-	// We're checking this later, so we can always disable the map vote if mp_endmatch_votenextmap is disabled
-	if (!g_cvarVoteManagerEnable.Get())
-		return;
 
 	// Reset the player vote counts as the vote just started
 	for (int i = 0; i < MAXPLAYERS; i++)
@@ -583,7 +571,7 @@ std::vector<int> CMapVoteSystem::GetNominatedMapsForVote()
 	std::vector<int> vecTiedNominations;											  // Nominations with tied nom counts
 	std::vector<int> vecChosenNominatedMaps;										  // Final vector of chosen nominations
 	int iMapsToIncludeInNominate = std::min({(int)mapOriginalNominatedMaps.size(), g_cvarVoteMaxNominations.Get(), g_cvarVoteMaxMaps.Get()});
-	int iMostNominations;
+	int iMostNominations = 0;
 	auto rng = std::default_random_engine{std::random_device{}()};
 
 	// Select top maps by number of nominations
@@ -659,9 +647,9 @@ std::vector<int> CMapVoteSystem::GetMapIndexesFromSubstring(const char* sMapSubs
 	return vecMaps;
 }
 
-uint64 CMapVoteSystem::HandlePlayerMapLookup(CCSPlayerController* pController, const char* sMapSubstring, bool bAllowWorkshopID)
+uint64 CMapVoteSystem::HandlePlayerMapLookup(CCSPlayerController* pController, const char* sMapSubstring, bool bAdmin)
 {
-	if (bAllowWorkshopID)
+	if (bAdmin)
 	{
 		uint64 iWorkshopID = V_StringToUint64(sMapSubstring, 0, NULL, NULL, PARSING_FLAG_SKIP_WARNING);
 
@@ -677,6 +665,17 @@ uint64 CMapVoteSystem::HandlePlayerMapLookup(CCSPlayerController* pController, c
 	}
 
 	std::vector<int> foundIndexes = GetMapIndexesFromSubstring(sMapSubstring);
+
+	// Don't list disabled maps in non-admin commands
+	if (!bAdmin)
+	{
+		for (int iIndex : foundIndexes)
+		{
+			// Only erase if vector has multiple elements, so we can still give "map disabled" output in single-match scenarios
+			if (!GetMapEnabledStatus(iIndex) && foundIndexes.size() > 1)
+				foundIndexes.erase(std::remove(foundIndexes.begin(), foundIndexes.end(), iIndex), foundIndexes.end());
+		}
+	}
 
 	if (foundIndexes.size() > 0)
 	{
@@ -872,6 +871,9 @@ void CMapVoteSystem::ForceNextMap(CCSPlayerController* pController, const char* 
 	}
 
 	uint64 iFoundMap = HandlePlayerMapLookup(pController, sMapSubstring, true);
+
+	if (iFoundMap == -1)
+		return;
 
 	if (GetForcedNextMap() == iFoundMap)
 	{
@@ -1165,7 +1167,8 @@ void CMapVoteSystem::OnLevelShutdown()
 		}
 	}
 
-	WriteMapCooldownsToFile();
+	if (IsMapListLoaded())
+		WriteMapCooldownsToFile();
 }
 
 std::string CMapVoteSystem::ConvertFloatToString(float fValue, int precision)
@@ -1322,6 +1325,18 @@ float CCooldown::GetCurrentCooldown()
 		fRemainingTime = fCurrentRemainingTime;
 
 	return fRemainingTime;
+}
+
+void CMapVoteSystem::ReloadCurrentMap()
+{
+	char sChangeMapCmd[128] = "";
+
+	if (GetCurrentWorkshopMap() != 0)
+		V_snprintf(sChangeMapCmd, sizeof(sChangeMapCmd), "host_workshop_map %llu", GetCurrentWorkshopMap());
+	else
+		V_snprintf(sChangeMapCmd, sizeof(sChangeMapCmd), "map %s", GetCurrentMapName());
+
+	g_pEngineServer2->ServerCommand(sChangeMapCmd);
 }
 
 // TODO: remove this once servers have been given at least a few months to update cs2fixes
