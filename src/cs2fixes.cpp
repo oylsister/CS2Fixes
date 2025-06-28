@@ -1083,6 +1083,13 @@ void CS2Fixes::Hook_CheckTransmit(CCheckTransmitInfo** ppInfoList, int infoCount
 					pInfo->m_pTransmitEntity->Clear(pHud->entindex());
 			}
 
+			CParticleSystem* hitmarker = pController->IsConnected() ? g_playerManager->GetPlayer(j)->GetHitmarkerHud() : nullptr;
+			if(hitmarker)
+			{
+				// Don't transmit other players' hitmarker hud
+				pInfo->m_pTransmitEntity->Clear(hitmarker->entindex());
+			}
+
 			// Always transmit other players if spectating
 			if (!g_cvarEnableHide.Get() || pSelfController->GetPawnState() == STATE_OBSERVER_MODE)
 				continue;

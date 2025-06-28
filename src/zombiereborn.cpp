@@ -120,7 +120,7 @@ void ZR_Precache(IEntityResourceManifest* pResourceManifest)
 	pResourceManifest->AddResource(g_cvarHumanWinOverlayMaterial.Get().String());
 	pResourceManifest->AddResource(g_cvarZombieWinOverlayMaterial.Get().String());
 
-	pResourceManifest->AddResource("soundevents/soundevents_zr.vsndevts");
+	pResourceManifest->AddResource("soundevents/soundevents_zsharp.vsndevts");
 }
 
 void ZR_CreateOverlay(const char* pszOverlayParticlePath, float flAlpha, float flRadius, float flLifeTime, Color clrTint, const char* pszMaterialOverride)
